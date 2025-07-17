@@ -28,6 +28,8 @@ import time
 #TODO - Añadir "Firmas"
 #TODO - Aviso de un email inválido/no enviado y borrado automatico de base de datos 
 #TODO - Hacer ventana "Creditos" al apretar logo cricket
+
+#TODO - Preparar inicio de la base de datos (creación del data.json)
 '''
 
 root = tk.Tk()
