@@ -30,7 +30,7 @@ import time
 #TODO - Hacer ventana "Creditos" al apretar logo cricket
 
 #TODO - Preparar inicio de la base de datos (creación del data.json)
-'''
+''' 
 
 root = tk.Tk()
 root.overrideredirect(True)
