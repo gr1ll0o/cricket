@@ -11,6 +11,8 @@ from email.mime.base import MIMEBase
 from email import encoders
 import threading
 import time
+import os
+import shutil
 
 '''
 #TODO - Hacer consola de logs de envios de mails [✅]
@@ -23,9 +25,9 @@ import time
 #TODO - Detectar si el mail ya existe en la lista [✅]
 #TODO - Añadir imagenes [✅]
 #TODO - Permitir estilizado de texto [✅]
-#TODO - Corregir invisibiliad de "Email de ..." al presionar en cualquier parte de la pantalla
-#TODO - Añadir botones de estilizado de texto
-#TODO - Añadir "Firmas"
+#TODO - Añadir "Firmas" [✅]
+#TODO - Corregir "Email de ..." al presionar en cualquier parte [✅]
+#TODO - Añadir botones de estilizado de texto [✅]
 #TODO - Aviso de un email inválido/no enviado y borrado automatico de base de datos 
 #TODO - Hacer ventana "Creditos" al apretar logo cricket
 
@@ -44,11 +46,26 @@ root.geometry(f"{w}x{h}+{x}+{y}")
 # Cargar la imagen
 img = Image.open("assets/img2.png")  # ejemplo: "logo.png"
 
-json_global = ""
+user = ""
+passw = ""
+smtp_host = ""
+smtp_port = 0
+
+DATADIR = 'data.json'
+CONFIGDIR = 'config.json'
+after = ""
+
+json_global = {}
+configs = {}
+
 list_selected = ""
+signature_path = ""
 
 imgs = []
 len_imgs = 0
+
+def show_settings_menu(event):
+    settings_menu.post(event.x_root, event.y_root)
 
 def show_del_menu(event):
     try:
@@ -64,6 +81,93 @@ def show_import_menu(event):
     except:
         pass
 
+def host_traduction(string):
+    global smtp_port
+    if string.lower() == "gmail": smtp_port = 465;return "smtp.gmail.com"
+    if string.lower() == "yahoo": smtp_port = 587;return "smtp.mail.yahoo.com"
+    if string.lower() == "outlook" or str.lower() == "hotmail": return "smtp.office365.com"
+    if not any(ext in string for ext in [".com", ".net", ".org", ".gov"]): return "Invalido"
+    else: return string
+
+def check_account():
+    hidden_pw = ""
+    for i in list(passw):
+        hidden_pw += "*"
+    if (user != "" or passw != ""): 
+        messagebox.askyesnocancel("Cuenta vinculada", f"Cuenta vinculada\n\nEMAIL: {user}\nPASSW: {hidden_pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione")
+    else: vinculate_account()
+
+def vinculate_account():
+    global smtp_host, smtp_port, user, passw    
+    u = simpledialog.askstring("Vincular una cuenta", "Introduce el correo electrónico de envío")
+    if u == None or u == "": return # Cancel
+    elif u != "": 
+        if "@" not in u or "." not in u: 
+            messagebox.showerror("Mail inválido", "Introduce un mail válido");return
+    pw = simpledialog.askstring("Vincular una cuenta", "Introduce la contraseña del email (es posible que necesite utilizar una contraseña de aplicacion)")
+    if pw == None or pw == "":return
+    q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería (Gmail, Yahoo, Outlook, Hotmail o el de su dominio propio)")
+    p = simpledialog.askstring("Vincular una cuenta", "Si está usando un dominio propio, introduzca el puerto a continuación. Si no es así, dejelo vacío y presione Aceptar")
+    if (p == ""): smtp_host = p;print("Puerto no especificado")
+    h = host_traduction(q)
+    if (q == "Invalido"): messagebox.showerror("Error", "No es un host válido");return
+    smtp_host = h
+    messagebox.showinfo("Resumen de la cuenta", f"EMAIL: {u}\nPASSW: {pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione aceptar para hacer la comprobación de conexión")
+    request = try_to_connect(u, pw, h, p)
+    if (request == "CONECTADO EXITOSAMENTE"): 
+        user = u
+        passw = pw
+        smtp_host = h
+        print(smtp_port)
+        configs['Email'] = user
+        configs['Password'] = passw
+        configs['Host'] = smtp_host
+        configs['Port'] = smtp_port
+        write_json_configs()
+        messagebox.showinfo("Cuenta conectada", "La cuenta ha sido vinculada con éxito")
+    else: messagebox.showerror("Error", "No se pudo conectar con la cuenta. Intentalo de nuevo y corrobora los datos.")
+
+def try_to_connect(user, password, host, port):
+    try:
+        if (host == "smtp.office365.com"):
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+        else:
+            server = smtplib.SMTP_SSL(host, port)
+        
+        server.login(user, password)
+        return "CONECTADO EXITOSAMENTE"
+    except Exception as e:
+        return e
+
+def signatures():
+    print(configs['Signature'])
+    print(signature_path)
+    if (signature_path == ""):
+        try:
+            q = messagebox.askyesno("Firmas", "No tenes ninguna firma registrada, ¿Queres regristrar una?")
+            if q: origin_path = filedialog.askopenfilename(title="Seleccioná un archivo", filetypes=[('Archivos JPG', '*.jpg')])
+            else: return
+            if origin_path:
+                name_signature = os.path.basename(f"signature1.jpg")
+                script = os.path.dirname(os.path.abspath(__file__))
+                ruta_destino = os.path.join(script, name_signature)
+                shutil.copy(origin_path, ruta_destino)
+            else: return
+        except: messagebox.showerror("Error", "Ha ocurrido un error al abrir el archivo");return
+        configs['Signature'] = name_signature
+        write_json_configs()
+        read_json_configs()
+        messagebox.showinfo("Firmas", "Se ha registrado su firma con éxito. Será añadida al final de un mensaje a partir de ahora")    
+    else:
+        c = messagebox.askokcancel("Firmas", f"Firma registrada:\n{configs['Signature']}\n\nPresione Cancelar para eliminarla")
+        if (not c): 
+            configs['Signature'] = ''
+            os.remove(signature_path)
+            write_json_configs()
+            read_json_configs()
+            messagebox.showinfo("Firmas", "Se ha eliminado la firma registrada")
+
 def show_send_menu(event):
     send_menu.post(event.x_root, event.y_root)
 
@@ -77,9 +181,77 @@ def attach_img():
             body_text.insert(tk.END, f'\n<img src="cid:imagen{len_imgs}">')
         except Exception as e: messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
 
+def send_emails():
+    transmitter = user
+    selected_list = listbox.get(listbox.curselection())
+    key = selected_list.split(" (")[0]
+    emails_destiny = data[key]
+    title_msg = subject_text.get("1.0", tk.END)
+    body_msg = body_text.get("1.0", tk.END)
+
+    try:
+        log("> Secuencia de Envío Iniciada")
+        root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
+        server.login(transmitter, passw) # Iniciar sesión
+        log("Iniciando envíos...\n")
+        i=1
+        for recipient in emails_destiny:
+            msg = MIMEMultipart('related')
+            msg['Subject'] = title_msg
+            msg['From'] = transmitter
+            msg['To'] = recipient
+            if (signature_path == ""):
+                html = f"""
+                <html>
+                <body>
+                    <p>{body_msg.replace('\n', '<br>')}</p>
+                </body>
+                </html>
+                """
+                print("FIRMA NO REGISTRADA")
+            else:
+                html = f"""
+                <html>
+                <body>
+                    <p>{body_msg.replace('\n', '<br>')}</p><br>
+                    <img src="cid:firma_img" width="450" height="120">
+                </body>
+                </html>
+                """
+                print(f"FIRMA REGISTRADA: {signature_path}")
+            msg.attach(MIMEText(html, 'html'))
+            if (imgs != []):
+                for path, cid in imgs:
+                    with open(path, 'rb') as f:
+                        img = MIMEImage(f.read())
+                        img.add_header('Content-ID', f'<{cid}>')
+                        msg.attach(img)
+                    print(cid)
+            if (signature_path != ""):
+                print("Insertando firma...")
+                with open(signature_path, 'rb') as f:
+                    img = MIMEImage(f.read())
+                    img.add_header('Content-ID', f'<firma_img>')
+                    img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
+                    msg.attach(img)
+
+            server.sendmail(transmitter, recipient, msg.as_string())
+            log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
+            i+=1
+            
+        server.quit()
+        log("", False)
+        log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
+        messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
+        print("Correo enviado con éxito!")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al enviar los emails: {e}")
+        print(f"Error al enviar el correo: {e}")
+
 def send_email(mail):
     global msg, imgs
-    transmitter = 'thiagotobias.grillo@gmail.com'
+    transmitter = user
     email_destiny = mail
     title_msg = subject_text.get("1.0", tk.END).strip()
     body_msg = body_text.get("1.0", tk.END).strip()
@@ -89,21 +261,32 @@ def send_email(mail):
         log("> Secuencia de Envío Iniciada")
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
-        server.login(transmitter, 'bffd paku mepd xake') # Iniciar sesión
+        server.login(transmitter, passw) # Iniciar sesión
         log("Iniciando envíos...\n")
 
         msg = MIMEMultipart('related')
         msg['Subject'] = title_msg
         msg['From'] = transmitter
         msg['To'] = email_destiny
-        
-        html = f"""
-        <html>
-          <body>
-            <p>{body_msg.replace('\n', '<br>')}</p>
-          </body>
-        </html>
-        """
+        if (signature_path == ""):
+            html = f"""
+            <html>
+            <body>
+                <p>{body_msg.replace('\n', '<br>')}</p>
+            </body>
+            </html>
+            """
+            print("FIRMA NO REGISTRADA")
+        else:
+            html = f"""
+            <html>
+            <body>
+                <p>{body_msg.replace('\n', '<br>')}</p><br>
+                <img src="cid:firma_img" width="450" height="120">
+            </body>
+            </html>
+            """
+            print(f"FIRMA REGISTRADA: {signature_path}")
         msg.attach(MIMEText(html, 'html'))
         if (imgs != []):
             for path, cid in imgs:
@@ -111,6 +294,15 @@ def send_email(mail):
                     img = MIMEImage(f.read())
                     img.add_header('Content-ID', f'<{cid}>')
                     msg.attach(img)
+                print(cid)
+        if (signature_path != ""):
+            print("Insertando firma...")
+            with open(signature_path, 'rb') as f:
+                img = MIMEImage(f.read())
+                img.add_header('Content-ID', f'<firma_img>')
+                img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
+                msg.attach(img)
+
         
         server.sendmail(transmitter, mail, msg.as_string())
         log(f"Enviando mail a {mail}...")  
@@ -153,7 +345,7 @@ def add_list_imports(name):
         file.close()
         emails = [line.strip() for line in content]  # Elimina saltos de línea
         json_global[name] = emails
-        try: update_display_emails(name);write_json_lists('data.json');read_json_lists('data.json')
+        try: update_display_emails(name);write_json_lists();read_json_lists()
         except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
         messagebox.showinfo("Importación exitosa", f"Se han importado {len(emails)} mails a {name}")
 
@@ -176,9 +368,9 @@ def del_email():
         try: mail = simpledialog.askinteger("Eliminar mail", f"Selecciona email a eliminar\n{text}", parent=root)
         except: return;
         erased = json_global[key].pop(mail-1)
-        write_json_lists('data.json')
+        write_json_lists()
         update_display_emails(key)
-        read_json_lists('data.json')
+        read_json_lists()
         messagebox.showinfo("Email eliminado", f"Se ha eliminado el mail {erased}de la lista {key} con éxito")
     except Exception as e: messagebox.showerror("Error", "Seleccione un número válido");return
     
@@ -202,7 +394,7 @@ def add_email():
                 mails.append(mail)
         
     data[key] += mails
-    try: update_display_emails(key);write_json_lists('data.json');read_json_lists('data.json')
+    try: update_display_emails(key);write_json_lists();read_json_lists()
     except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
     messagebox.showinfo("Importación exitosa", f"Se han importado {len(mails)} mails a {key}")
 
@@ -225,7 +417,7 @@ def import_file():
                 emails = [line.strip() for line in content]  # Elimina saltos de línea
                 new_emails = [email for email in emails if email not in json_global[key]]
                 json_global[key] += new_emails
-                try: update_display_emails(key);write_json_lists('data.json');read_json_lists('data.json')
+                try: update_display_emails(key);write_json_lists();read_json_lists()
                 except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
                 messagebox.showinfo("Importación exitosa", f"Se han importado {len(new_emails)} mails a {key}")
         elif c == False: 
@@ -251,6 +443,8 @@ def import_file():
         add_list_imports(name)
 
 def start_sending_emails(mode=1, mail_from_mode_2=None):
+    if (user == "" or passw == ""):
+        messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en la esquina superior izquierda.");return
     if mode == 1: # Multi emails (default)
         try:
             selected_list = listbox.get(listbox.curselection())
@@ -284,58 +478,8 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
     else: # Error
         raise Exception("Modo no válido")
 
-def send_emails():
-    transmitter = 'thiagotobias.grillo@gmail.com'
-    selected_list = listbox.get(listbox.curselection())
-    key = selected_list.split(" (")[0]
-    emails_destiny = data[key]
-    title_msg = subject_text.get("1.0", tk.END)
-    body_msg = body_text.get("1.0", tk.END)
-
-    # Configuración del servidor SMTP (Gmail en este caso)
-    try:
-        log("> Secuencia de Envío Iniciada")
-        root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
-        server.login(transmitter, 'bffd paku mepd xake') # Iniciar sesión
-        log("Iniciando envíos...\n")
-        i=1
-        for recipient in emails_destiny:
-            msg = MIMEMultipart('related')
-            msg['Subject'] = title_msg
-            msg['From'] = transmitter
-            msg['To'] = recipient
-
-            html = f"""
-            <html>
-              <body>
-                <p>{body_msg.replace('\n', '<br>')}</p>
-              </body>
-            </html>
-            """
-            msg.attach(MIMEText(html, 'html'))
-            if (imgs != []):
-                for path, cid in imgs:
-                    with open(path, 'rb') as f:
-                        img = MIMEImage(f.read())
-                        img.add_header('Content-ID', f'<{cid}>')
-                        msg.attach(img)
-
-            server.sendmail(transmitter, recipient, msg.as_string())
-            log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
-            i+=1
-            
-        server.quit()
-        log("", False)
-        log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
-        messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
-        print("Correo enviado con éxito!")
-    except Exception as e:
-        messagebox.showerror("Error", f"Error al enviar los emails: {e}")
-        print(f"Error al enviar el correo: {e}")
-
 def send_all_emails(list):
-    transmitter = 'thiagotobias.grillo@gmail.com'
+    transmitter = user
     emails_destiny = list
     title_msg = subject_text.get("1.0", tk.END)
     body_msg = body_text.get("1.0", tk.END)
@@ -348,14 +492,48 @@ def send_all_emails(list):
         log("======================\n", False)
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
-        server.login(transmitter, 'bffd paku mepd xake') # Iniciar sesión
+        server.login(transmitter, passw) # Iniciar sesión
         log("Iniciando envíos...\n")
         i=1
         for recipient in emails_destiny:
-            msg = MIMEText(body_msg) # CUERPO/MENSAJE
+            msg = MIMEMultipart('related') # CUERPO/MENSAJE
             msg['Subject'] = title_msg # ASUNTO
             msg['From'] = transmitter # EMISOR
             msg['To'] = recipient #RECEPTOR
+            if (signature_path == ""):
+                html = f"""
+                <html>
+                <body>
+                    <p>{body_msg.replace('\n', '<br>')}</p>
+                </body>
+                </html>
+                """
+                print("FIRMA NO REGISTRADA")
+            else:
+                html = f"""
+                <html>
+                <body>
+                    <p>{body_msg.replace('\n', '<br>')}</p><br>
+                    <img src="cid:firma_img" width="450" height="120">
+                </body>
+                </html>
+                """
+                print(f"FIRMA REGISTRADA: {signature_path}")
+            msg.attach(MIMEText(html, 'html'))
+            if (imgs != []):
+                for path, cid in imgs:
+                    with open(path, 'rb') as f:
+                        img = MIMEImage(f.read())
+                        img.add_header('Content-ID', f'<{cid}>')
+                        msg.attach(img)
+                    print(cid)
+            if (signature_path != ""):
+                print("Insertando firma...")
+                with open(signature_path, 'rb') as f:
+                    img = MIMEImage(f.read())
+                    img.add_header('Content-ID', f'<firma_img>')
+                    img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
+                    msg.attach(img)
 
             server.sendmail(transmitter, recipient, msg.as_string())
             log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
@@ -368,6 +546,7 @@ def send_all_emails(list):
         print("Correo enviado con éxito!")
     except Exception as e:
         messagebox.showerror("Error", f"Error al enviar los emails: {e}")
+        print(e)
         print(f"Error al enviar el correo: {e}")
 
 def on_click_list(event):
@@ -378,10 +557,13 @@ def on_click_list(event):
         list_selected = selected_item
         email_selected_label.configure(text=f'Enviar a {list_selected}')
         update_display_emails(selected_item)
+        if (listbox.size() == 0): list_emails_label.config(text="")
     except:
         update_display_emails("")
+        if (listbox.size() == 0): list_emails_label.config(text="")
 
-def update_display_emails(selected_item):
+def update_display_emails(selected_item=list_selected):
+    global after, user, passw
     t=""
     key = selected_item.split(" (")[0]
     list_emails_label.config(text=f"E-mails de {key}")
@@ -392,13 +574,37 @@ def update_display_emails(selected_item):
         emails_display.delete('1.0', tk.END)
         emails_display.insert(tk.END, t)
         emails_display.config(state=tk.NORMAL)
+        after = key
     except:
-        list_emails_label.config(text="")
+        list_emails_label.config(text=f"E-mails de {after}")
 
-def read_json_lists(dir):
+def read_json_configs():
+    global configs, signature_path, user, passw, smtp_host, smtp_port
+    try:
+        with open(CONFIGDIR, 'r') as file:
+            cdata = json.load(file)
+            configs = cdata
+            signature_path = configs['Signature']
+            user = configs['Email']
+            passw = configs['Password']
+            smtp_host = configs['Host']
+            smtp_port = configs['Port']
+    except:
+        configs = {'Email': '', 'Password': '', 'Host': '', 'Port': '', 'Signature': ''} 
+        with open(CONFIGDIR, 'w') as file:
+            json.dump(configs, file, ensure_ascii=False, indent=4)
+    if (user == ""): title.config(text="cricket - 🔗❗")
+    else: title.config(text=f"cricket - {user}")
+
+def write_json_configs():
+    global configs
+    with open(CONFIGDIR, 'w') as file:
+        json.dump(configs, file, ensure_ascii=False, indent=4)
+
+def read_json_lists():
     global listbox, json_global, data, lists_mails, lists
     try:
-        with open(dir, 'r') as file:
+        with open(DATADIR, 'r') as file:
             data = json.load(file)
             json_global = data
             lists = list(data.keys()) # LISTAS
@@ -408,15 +614,14 @@ def read_json_lists(dir):
         for lista in lists:
             listbox.insert(tk.END, f'{lista} ({len(data[lista])})')
     except:
-        with open(dir, 'w') as file:
+        with open(DATADIR, 'w') as file:
             file.write('')
         json_global = {}
     list_selected = listbox.get(tk.END).split(" (")[0]
-    # print(json_global)
 
-def write_json_lists(dir):
+def write_json_lists():
     global json_global
-    with open(dir, 'w') as file:
+    with open(DATADIR, 'w') as file:
         json.dump(json_global, file, ensure_ascii=False, indent=4)
 
 def add_list():
@@ -443,8 +648,8 @@ def add_list():
         
     json_global[name] = mails
 
-    write_json_lists('data.json')
-    read_json_lists('data.json')
+    write_json_lists()
+    read_json_lists()
     messagebox.showinfo("Lista creada", f"La lista {name} ha sido creada con éxito.")
 
 def del_list():
@@ -458,8 +663,8 @@ def del_list():
         if confirm:
             key = selected_list.split(" (")[0]
             json_global.pop(key)
-            write_json_lists('data.json')
-            read_json_lists('data.json')
+            write_json_lists()
+            read_json_lists()
             messagebox.showinfo("Lista eliminada", f"Se eliminó la lista {selected_list}")
             emails_display.config(text="")
             email_selected_label.config(text="")
@@ -470,6 +675,16 @@ def del_list():
         email_selected_label.config(text="")
         list_emails_label.config(text="")
 
+def style_text(mode):
+    if (mode == "bold"):
+        body_text.insert(tk.END, "<b></b>")
+        body_text.mark_set("insert", f"{body_text.index('insert')} -4c")
+    elif (mode == "italic"):
+        body_text.insert(tk.END, "<i></i>")
+        body_text.mark_set("insert", f"{body_text.index('insert')} -4c")
+    else: return
+    body_text.focus()
+
 def start_move(event): root.x = event.x; root.y = event.y
 
 def do_move(event):
@@ -478,7 +693,8 @@ def do_move(event):
     root.geometry(f'+{x}+{y}')
 
 def refresh():
-    read_json_lists('data.json')
+    read_json_configs()
+    read_json_lists()
 
 def close_window(): root.destroy()
 
@@ -489,6 +705,7 @@ img = img.resize((50, 50), Image.LANCZOS).convert("RGBA")  # opcional, ajustar t
 photo = ImageTk.PhotoImage(img)
 logo_img = tk.Label(title_bar, image=photo, bg="#000d21")
 logo_img.place(x=7)
+logo_img.bind('<Button-3>', show_settings_menu)
 title = tk.Label(title_bar, text="cricket", bg="#000d21", fg="white", font=('Arial', 22, "italic bold"), pady=7)
 title.place(x=64, y=3)
 close_btn = tk.Button(title_bar, text=" X ",activebackground="#f00", activeforeground="#fff", command=close_window, bg="#000d21", fg="white", bd=0, padx=10, font=('Arial', 20, "bold"))
@@ -508,12 +725,11 @@ main_content.pack(expand=True, fill=tk.BOTH)
 #!SECTION
 
 #SECTION - Elements
-
 list_label = tk.Label(main_content, bg="#001536", fg="#fff", text="Listas de e-mails", font=('Arial', 16, "bold"))
 list_label.place(x=15, y=10)
 
 listbox = tk.Listbox(main_content, border=0)
-listbox.config(font=('Arial', 20),background="#061E44", foreground="#fff", bd=0)
+listbox.config(font=('Arial', 17, 'bold'),background="#061E44", foreground="#fff", bd=0)
 listbox.place(x=20, y=40, width=300, height=428)
 listbox.bind("<<ListboxSelect>>", on_click_list)
 
@@ -573,8 +789,18 @@ scrollbar = tk.Scrollbar(console_frame, command=console_text.yview)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 console_text.config(yscrollcommand=scrollbar.set)
 
-attach_btn = tk.Button(main_content, command=attach_img, activebackground="#011330", activeforeground="#fff", text="📎", font=('Arial', 20), bg="#061E44", fg="#fff", bd=0)
-attach_btn.place(x=925, y=395)
+bold_btn = tk.Button(main_content, command=lambda: style_text("bold"),  activebackground="#011330", activeforeground="#fff", text=" B ", font=('Arial', 17, "bold"), bg="#061E44", fg="#fff", bd=0)
+bold_btn.place(x=878, y=400)
+bold_btn.bind('<Enter>', lambda e: bold_btn.config(bg="#012965"))
+bold_btn.bind('<Leave>', lambda e: bold_btn.config(bg="#061E44")) 
+
+italic_btn = tk.Button(main_content, command=lambda: style_text("italic"), activebackground="#011330", activeforeground="#fff", text="  I  ", font=('Times', 17, "italic"), bg="#061E44", fg="#fff", bd=0)
+italic_btn.place(x=820, y=400)
+italic_btn.bind('<Enter>', lambda e: italic_btn.config(bg="#012965"))
+italic_btn.bind('<Leave>', lambda e: italic_btn.config(bg="#061E44")) 
+
+attach_btn = tk.Button(main_content, command=attach_img, activebackground="#011330", activeforeground="#fff", text="📎", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
+attach_btn.place(x=930, y=400)
 attach_btn.bind('<Enter>', lambda e: attach_btn.config(bg="#012965"))
 attach_btn.bind('<Leave>', lambda e: attach_btn.config(bg="#061E44")) 
 
@@ -587,6 +813,13 @@ send_btn.bind('<Leave>', lambda e: send_btn.config(bg="#061E44"))
 #!SECTION
 
 #SECTION - Menues
+settings_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
+settings_menu.add_command(label="Importar texto", command=print("EN DESARROLLO"))
+settings_menu.add_command(label="Firmas", command=signatures)
+settings_menu.add_separator()
+settings_menu.add_command(label="Administrar cuenta...", command=check_account)
+settings_menu.add_command(label="Creditos...", command=signatures)
+
 dellist_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 dellist_menu.add_command(label="Eliminar un email", command=del_email)
 
@@ -598,5 +831,6 @@ send_menu.add_command(label="Enviar a toda la base de datos", command=send_all_d
 send_menu.add_command(label="Envío rápido", command=fast_send)
 #!SECTION
 
-read_json_lists('data.json')
+read_json_lists()
+read_json_configs()
 root.mainloop()

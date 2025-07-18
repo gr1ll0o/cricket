@@ -4,7 +4,6 @@
 - Se añadio: Consola de emails
 - Se añadio: Añadir lista
 - Se añadio: Eliminar lista
-- Se añadio: 
 - Se añadio: Importación de listas a traves de archivos
 - Se añadio: Importacion de emails a listas a traves de archivos
 - Se añadio: Importacion de emails a listas manualmente
@@ -12,3 +11,5 @@
 - Se añadio: Eliminar un email de una lista
 - Se añadió: Añadir imagenes al cuerpo de un mail
 - Se modificó: Estructura de un email = de texto plano a HTML
+- Se añadio: Menú de "Firma"
+- Se añadio: Botones de Estilizado de texto
