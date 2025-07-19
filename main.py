@@ -124,7 +124,8 @@ def check_account():
 
 def vinculate_account():
     global smtp_host, smtp_port, user, passw    
-    messagebox.showinfo("Vincular una cuenta", "Debe vincular su cuenta de servicio de mensajería para enviar correos electronicos. Siga a continuación las instrucciones para configurar su perfil.")
+    c = messagebox.askokcancel("Vincular una cuenta", "Debe vincular su cuenta de servicio de mensajería para enviar correos electronicos. Siga a continuación las instrucciones para configurar su perfil.")
+    if (c == False): return
     u = simpledialog.askstring("Vincular una cuenta", "Introduce el correo electrónico de envío")
     if u == None or u == "": return # Cancel
     elif u != "": 
@@ -134,10 +135,9 @@ def vinculate_account():
     if pw == None or pw == "":return
     q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería (Gmail, Yahoo, Outlook, Hotmail o el de su dominio propio)")
     print(q)
-    #FIXME - ARREGLAR BUG
-    if (q.lower() != "gmail" or q.lower() != "yahoo" or q.lower() != "hotmail" or q.lower() != "outlook"):
+    if (q.strip().lower() not in ["gmail", "yahoo", "hotmail", "outlook"]):
         p = simpledialog.askstring("Vincular una cuenta", "Parece que estás usando un dominio propio, introduzca el puerto de su conexión.")
-        if (p == ""): messagebox.showerror("Error", "Debe especificar el puerto de la conexión a su dominio.")
+        if (p == ""): messagebox.showerror("Error", "Debe especificar el puerto de la conexión a su dominio.");return
         else: smtp_port = p
     else: print("XD")
     h = host_traduction(q)
