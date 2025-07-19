@@ -738,7 +738,7 @@ def refresh():
 
 def close_window(): root.destroy()
 
-#SECTION - Setup
+#! SETUP ###################################
 title_bar = tk.Frame(root, bg="#000d21", relief='raised', bd=0, height=30)
 title_bar.pack(fill=tk.X)
 img = img.resize((50, 50), Image.LANCZOS).convert("RGBA")  # opcional, ajustar tamaño
@@ -762,9 +762,9 @@ refresh_btn.bind('<Enter>', lambda e: refresh_btn.config(bg="#011d47"))
 refresh_btn.bind('<Leave>', lambda e: refresh_btn.config(bg="#000d21"))
 main_content = tk.Frame(root, bg="#001536")
 main_content.pack(expand=True, fill=tk.BOTH)
-#!SECTION
+#!############################################
 
-#SECTION - Elements
+#! ELEMENTS !#################################
 list_label = tk.Label(main_content, bg="#001536", fg="#fff", text="Listas de e-mails", font=('Arial', 16, "bold"))
 list_label.place(x=15, y=10)
 
@@ -849,10 +849,9 @@ send_btn.place(x=845, y=483)
 send_btn.bind('<Button-3>', show_send_menu)
 send_btn.bind('<Enter>', lambda e: send_btn.config(bg="#012965"))
 send_btn.bind('<Leave>', lambda e: send_btn.config(bg="#061E44")) 
+#!##################################################
 
-#!SECTION
-
-#SECTION - Menues
+#! MENUES !#########################################
 settings_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 # settings_menu.add_command(label="Importar texto", command=lambda: print("EN DESARROLLO"))
 settings_menu.add_command(label="Firmas", command=signatures)
@@ -869,7 +868,7 @@ addlist_menu.add_command(label="Añadir un email", command=add_email)
 send_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 send_menu.add_command(label="Enviar a toda la base de datos", command=send_all_database)
 send_menu.add_command(label="Envío rápido", command=fast_send)
-#!SECTION
+#!##############################################
 
 read_json_lists()
 read_json_configs()
