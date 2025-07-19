@@ -350,6 +350,7 @@ def fast_send():
 
 def send_all_database():
     if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
+    if (data == {}): messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
     all = []
     for list in data:
             for mail in data[list]:
@@ -480,8 +481,7 @@ def import_file():
         add_list_imports(name)
 
 def start_sending_emails(mode=1, mail_from_mode_2=None):
-    if (user == "" or passw == ""):
-        messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en el logo.");return
+    if (user == "" or passw == ""): messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en el logo.");return
     if mode == 1: # Multi emails (default)
         try:
             selected_list = listbox.get(listbox.curselection())
@@ -504,6 +504,7 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
         threading.Thread(target=send_email, args=(mail_from_mode_2,)).start()
     elif mode == 3: # ALL DATABASE
         all = []
+        print(data)
         for list in data:
             for mail in data[list]:
                 all.append(mail)
