@@ -15,28 +15,6 @@ import os
 import sys
 import shutil
 
-'''
-#TODO - Hacer consola de logs de envios de mails [✅]
-#TODO - Importar mails a través de un archivo [✅]
-#TODO - Eliminar el CC [✅]
-#TODO - Importar mails manualmente [✅]
-#TODO - Enviar a un solo mail (envío rápido) [✅]
-#TODO - Eliminar un mail de una lista [✅]
-#TODO - Enviar a toda la base de datos [✅]
-#TODO - Detectar si el mail ya existe en la lista [✅]
-#TODO - Añadir imagenes [✅]
-#TODO - Permitir estilizado de texto [✅]
-#TODO - Añadir "Firmas" [✅]
-#TODO - Corregir "Email de ..." al presionar en cualquier parte [✅]
-#TODO - Añadir botones de estilizado de texto [✅]
-#TODO - Poner un filtro al importar mails de archivos (que incluyan @ y .) [✅]
-#TODO - Terminar interfaz de "Administrar cuenta" (al rechazar, añadir borrar cuenta, detectar que email coincida con servicio)
-#TODO - Aviso de un email inválido/no enviado y borrado automatico de base de datos 
-#TODO - Hacer ventana "Creditos" al apretar logo cricket
-
-#TODO - Preparar inicio de la base de datos (creación del data.json)
-''' 
-
 root = tk.Tk()
 root.overrideredirect(True)
 root.geometry("1000x600")
@@ -127,7 +105,7 @@ def vinculate_account():
     c = messagebox.askokcancel("Vincular una cuenta", "Debe vincular su cuenta de servicio de mensajería para enviar correos electronicos. Siga a continuación las instrucciones para configurar su perfil.")
     if (c == False): return
     u = simpledialog.askstring("Vincular una cuenta", "Introduce el correo electrónico de envío")
-    if u == None or u == "": return # Cancel
+    if u == None or u == "": return
     elif u != "": 
         if "@" not in u or "." not in u: 
             messagebox.showerror("Mail inválido", "Introduce un mail válido");return
@@ -181,7 +159,7 @@ def signatures():
             if q: origin_path = filedialog.askopenfilename(title="Seleccioná un archivo", filetypes=[('Archivos JPG', '*.jpg')])
             else: return
             if origin_path:
-                name_signature = os.path.basename(f"signature1.jpg")
+                name_signature = os.path.basename(f"signature.jpg")
                 script = os.path.dirname(os.path.abspath(__file__))
                 ruta_destino = os.path.join(script, name_signature)
                 shutil.copy(origin_path, ruta_destino)
@@ -495,7 +473,7 @@ def import_file():
 
 def start_sending_emails(mode=1, mail_from_mode_2=None):
     if (user == "" or passw == ""):
-        messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en la esquina superior izquierda.");return
+        messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en el logo.");return
     if mode == 1: # Multi emails (default)
         try:
             selected_list = listbox.get(listbox.curselection())
@@ -644,7 +622,7 @@ def read_json_configs():
         configs = {'Email': '', 'Password': '', 'Host': 0, 'Port': '', 'Signature': ''} 
         with open(CONFIGDIR, 'w') as file:
             json.dump(configs, file, ensure_ascii=False, indent=4)
-    if (user == ""): title.config(text="cricket - ❗")
+    if (user == ""): title.config(text="cricket  - ❗")
     else: title.config(text=f"cricket - {user}")
 
 def write_json_configs():
@@ -844,7 +822,7 @@ scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 console_text.config(yscrollcommand=scrollbar.set)
 
 bold_btn = tk.Button(main_content, command=lambda: style_text("bold"),  activebackground="#011330", activeforeground="#fff", text=" B ", font=('Arial', 17, "bold"), bg="#061E44", fg="#fff", bd=0)
-bold_btn.place(x=878, y=400)
+bold_btn.place(x=876, y=400)
 bold_btn.bind('<Enter>', lambda e: bold_btn.config(bg="#012965"))
 bold_btn.bind('<Leave>', lambda e: bold_btn.config(bg="#061E44")) 
 
@@ -868,7 +846,7 @@ send_btn.bind('<Leave>', lambda e: send_btn.config(bg="#061E44"))
 
 #SECTION - Menues
 settings_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
-settings_menu.add_command(label="Importar texto", command=print("EN DESARROLLO"))
+# settings_menu.add_command(label="Importar texto", command=lambda: print("EN DESARROLLO"))
 settings_menu.add_command(label="Firmas", command=signatures)
 settings_menu.add_separator()
 settings_menu.add_command(label="Administrar cuenta...", command=check_account)
