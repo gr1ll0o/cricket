@@ -1,3 +1,6 @@
+# extensions
 *.json
 *.log
+
+# auto-generated signature 
 signature1.jpg
