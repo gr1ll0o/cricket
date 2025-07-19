@@ -117,7 +117,10 @@ def vinculate_account():
         p = simpledialog.askstring("Vincular una cuenta", "Parece que estás usando un dominio propio, introduzca el puerto de su conexión.")
         if (p == ""): messagebox.showerror("Error", "Debe especificar el puerto de la conexión a su dominio.");return
         else: smtp_port = p
-    else: print("XD")
+    else: 
+        email_domain = u.split('@')[-1].lower().strip()  # ejemplo: gmail.com
+        service = q.lower().strip()
+        if service not in email_domain: messagebox.showwarning("Error", f"El servicio ingresado {service} no coincide con el del mail {u} ingresado");return
     h = host_traduction(q)
     if (q == "Invalido"): messagebox.showerror("Error", "No es un host válido");return
     smtp_host = h
