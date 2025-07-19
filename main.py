@@ -12,6 +12,7 @@ from email import encoders
 import threading
 import time
 import os
+import sys
 import shutil
 
 '''
@@ -28,6 +29,8 @@ import shutil
 #TODO - Añadir "Firmas" [✅]
 #TODO - Corregir "Email de ..." al presionar en cualquier parte [✅]
 #TODO - Añadir botones de estilizado de texto [✅]
+#TODO - Poner un filtro al importar mails de archivos (que incluyan @ y .) [✅]
+#TODO - Terminar interfaz de "Administrar cuenta" (al rechazar, añadir borrar cuenta, detectar que email coincida con servicio)
 #TODO - Aviso de un email inválido/no enviado y borrado automatico de base de datos 
 #TODO - Hacer ventana "Creditos" al apretar logo cricket
 
@@ -43,8 +46,14 @@ x = (ws // 2) - (w // 2)
 y = (hs // 2) - (h // 2)
 root.geometry(f"{w}x{h}+{x}+{y}")
 
-# Cargar la imagen
-img = Image.open("assets/img2.png")  # ejemplo: "logo.png"
+def get_resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# Images
+img = Image.open(get_resource_path('assets/logo.png'))  # ejemplo: "logo.png"
+root.iconbitmap(get_resource_path("assets/icon.ico"))
 
 user = ""
 passw = ""
@@ -85,20 +94,37 @@ def host_traduction(string):
     global smtp_port
     if string.lower() == "gmail": smtp_port = 465;return "smtp.gmail.com"
     if string.lower() == "yahoo": smtp_port = 587;return "smtp.mail.yahoo.com"
-    if string.lower() == "outlook" or str.lower() == "hotmail": return "smtp.office365.com"
+    if string.lower() == "outlook" or string.lower() == "hotmail": smtp_port = 587;return "smtp.office365.com"
     if not any(ext in string for ext in [".com", ".net", ".org", ".gov"]): return "Invalido"
     else: return string
 
 def check_account():
+    global passw, user, smtp_host, smtp_port
     hidden_pw = ""
     for i in list(passw):
         hidden_pw += "*"
     if (user != "" or passw != ""): 
-        messagebox.askyesnocancel("Cuenta vinculada", f"Cuenta vinculada\n\nEMAIL: {user}\nPASSW: {hidden_pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione")
+        q = messagebox.askyesnocancel("Cuenta vinculada", f"Cuenta vinculada\n\nEMAIL: {user}\nPASSW: {hidden_pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione No para cerrar sesión")
+        if q == None or q == True: return
+        else:
+            q = messagebox.askyesno("Confirmar cierre de sesion", f"¿Estás seguro que queres cerrar sesión en {user}?")
+            if (not q): return
+            user = ""
+            passw = ""
+            smtp_host = ""
+            smtp_port = 0
+            configs['Email'] = user
+            configs['Password'] = passw
+            configs['Host'] = smtp_host
+            configs['Port'] = smtp_port
+            write_json_configs()
+            read_json_configs()
+            messagebox.showinfo("Sesión cerrada", "Se ha cerrado su sesión con éxito")
     else: vinculate_account()
 
 def vinculate_account():
     global smtp_host, smtp_port, user, passw    
+    messagebox.showinfo("Vincular una cuenta", "Debe vincular su cuenta de servicio de mensajería para enviar correos electronicos. Siga a continuación las instrucciones para configurar su perfil.")
     u = simpledialog.askstring("Vincular una cuenta", "Introduce el correo electrónico de envío")
     if u == None or u == "": return # Cancel
     elif u != "": 
@@ -107,13 +133,18 @@ def vinculate_account():
     pw = simpledialog.askstring("Vincular una cuenta", "Introduce la contraseña del email (es posible que necesite utilizar una contraseña de aplicacion)")
     if pw == None or pw == "":return
     q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería (Gmail, Yahoo, Outlook, Hotmail o el de su dominio propio)")
-    p = simpledialog.askstring("Vincular una cuenta", "Si está usando un dominio propio, introduzca el puerto a continuación. Si no es así, dejelo vacío y presione Aceptar")
-    if (p == ""): smtp_host = p;print("Puerto no especificado")
+    print(q)
+    #FIXME - ARREGLAR BUG
+    if (q.lower() != "gmail" or q.lower() != "yahoo" or q.lower() != "hotmail" or q.lower() != "outlook"):
+        p = simpledialog.askstring("Vincular una cuenta", "Parece que estás usando un dominio propio, introduzca el puerto de su conexión.")
+        if (p == ""): messagebox.showerror("Error", "Debe especificar el puerto de la conexión a su dominio.")
+        else: smtp_port = p
+    else: print("XD")
     h = host_traduction(q)
     if (q == "Invalido"): messagebox.showerror("Error", "No es un host válido");return
     smtp_host = h
     messagebox.showinfo("Resumen de la cuenta", f"EMAIL: {u}\nPASSW: {pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione aceptar para hacer la comprobación de conexión")
-    request = try_to_connect(u, pw, h, p)
+    request = try_to_connect(u, pw, h, smtp_port)
     if (request == "CONECTADO EXITOSAMENTE"): 
         user = u
         passw = pw
@@ -124,6 +155,7 @@ def vinculate_account():
         configs['Host'] = smtp_host
         configs['Port'] = smtp_port
         write_json_configs()
+        read_json_configs()
         messagebox.showinfo("Cuenta conectada", "La cuenta ha sido vinculada con éxito")
     else: messagebox.showerror("Error", "No se pudo conectar con la cuenta. Intentalo de nuevo y corrobora los datos.")
 
@@ -243,6 +275,8 @@ def send_emails():
         server.quit()
         log("", False)
         log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
+        imgs = []
+        len_imgs = 0
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
         print("Correo enviado con éxito!")
     except Exception as e:
@@ -311,6 +345,7 @@ def send_email(mail):
         log(f"Email a {mail} enviado con éxito.")
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
         imgs = []
+        len_imgs = 0
         print("Correo enviado con éxito!")
     except Exception as e:
         messagebox.showerror("Error", f"Error al enviar los emails: {e}")
@@ -344,7 +379,14 @@ def add_list_imports(name):
         content = file.readlines()
         file.close()
         emails = [line.strip() for line in content]  # Elimina saltos de línea
-        json_global[name] = emails
+        new_emails=[]
+        for line in emails:
+            if ("@" in line and "." in line):
+                new_emails.append(line)
+                print("VALIDO")
+            else: 
+                print("NO VALIDO")
+        json_global[name] = new_emails
         try: update_display_emails(name);write_json_lists();read_json_lists()
         except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
         messagebox.showinfo("Importación exitosa", f"Se han importado {len(emails)} mails a {name}")
@@ -365,8 +407,8 @@ def del_email():
         i+=1
         text += f"{i}) {mail}\n"
     try:
-        try: mail = simpledialog.askinteger("Eliminar mail", f"Selecciona email a eliminar\n{text}", parent=root)
-        except: return;
+        try: mail = int(simpledialog.askstring("Eliminar mail", f"Selecciona email a eliminar\n{text}", parent=root))
+        except: pass
         erased = json_global[key].pop(mail-1)
         write_json_lists()
         update_display_emails(key)
@@ -416,13 +458,21 @@ def import_file():
                 file.close()
                 emails = [line.strip() for line in content]  # Elimina saltos de línea
                 new_emails = [email for email in emails if email not in json_global[key]]
-                json_global[key] += new_emails
+                i=0
+                for line in new_emails:
+                    if ("@" in line and "." in line): 
+                        json_global[key].append(new_emails[i])
+                        print("VALIDO")
+                    else: 
+                        print("NO VALIDO")
+                    i+=1
                 try: update_display_emails(key);write_json_lists();read_json_lists()
                 except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
                 messagebox.showinfo("Importación exitosa", f"Se han importado {len(new_emails)} mails a {key}")
         elif c == False: 
             print(json_global)
             name = simpledialog.askstring("Crear lista de importación", "Ingrese el nombre de la nueva lista", parent=root)
+            if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
             if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
             if (json_global != {}):
                 for list in lists:
@@ -434,6 +484,7 @@ def import_file():
     except Exception as e:
         print(e)
         name = simpledialog.askstring("Crear lista de importación", "Ingrese el nombre de la nueva lista", parent=root)
+        if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
         if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
         if (json_global != {}):
             for list in lists:
@@ -590,10 +641,10 @@ def read_json_configs():
             smtp_host = configs['Host']
             smtp_port = configs['Port']
     except:
-        configs = {'Email': '', 'Password': '', 'Host': '', 'Port': '', 'Signature': ''} 
+        configs = {'Email': '', 'Password': '', 'Host': 0, 'Port': '', 'Signature': ''} 
         with open(CONFIGDIR, 'w') as file:
             json.dump(configs, file, ensure_ascii=False, indent=4)
-    if (user == ""): title.config(text="cricket - 🔗❗")
+    if (user == ""): title.config(text="cricket - ❗")
     else: title.config(text=f"cricket - {user}")
 
 def write_json_configs():
@@ -625,7 +676,10 @@ def write_json_lists():
         json.dump(json_global, file, ensure_ascii=False, indent=4)
 
 def add_list():
+    global erased
+    erased = ""
     name = simpledialog.askstring("Crear lista", "Ingrese el nombre de la nueva lista", parent=root)
+    if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
     if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
     if (json_global != {}):
         for list in lists:
