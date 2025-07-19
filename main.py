@@ -70,9 +70,9 @@ def show_import_menu(event):
 
 def host_traduction(string):
     global smtp_port
-    if string.lower() == "gmail": smtp_port = 465;return "smtp.gmail.com"
-    if string.lower() == "yahoo": smtp_port = 587;return "smtp.mail.yahoo.com"
-    if string.lower() == "outlook" or string.lower() == "hotmail": smtp_port = 587;return "smtp.office365.com"
+    if string.lower() == "gmail.com": smtp_port = 465;return "smtp.gmail.com"
+    if string.lower() == "yahoo.com": smtp_port = 587;return "smtp.mail.yahoo.com"
+    if string.lower() == "outlook.com" or string.lower() == "hotmail": smtp_port = 587;return "smtp.office365.com"
     if not any(ext in string for ext in [".com", ".net", ".org", ".gov"]): return "Invalido"
     else: return string
 
@@ -101,7 +101,7 @@ def check_account():
     else: vinculate_account()
 
 def vinculate_account():
-    global smtp_host, smtp_port, user, passw    
+    global smtp_host, smtp_port, user, passw   
     c = messagebox.askokcancel("Vincular una cuenta", "Debe vincular su cuenta de servicio de mensajería para enviar correos electronicos. Siga a continuación las instrucciones para configurar su perfil.")
     if (c == False): return
     u = simpledialog.askstring("Vincular una cuenta", "Introduce el correo electrónico de envío")
@@ -111,9 +111,14 @@ def vinculate_account():
             messagebox.showerror("Mail inválido", "Introduce un mail válido");return
     pw = simpledialog.askstring("Vincular una cuenta", "Introduce la contraseña del email (es posible que necesite utilizar una contraseña de aplicacion)")
     if pw == None or pw == "":return
-    q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería (Gmail, Yahoo, Outlook, Hotmail o el de su dominio propio)")
-    print(q)
-    if (q.strip().lower() not in ["gmail", "yahoo", "hotmail", "outlook"]):
+    email_domain = u.split('@')[-1].lower().strip()
+    print(email_domain)
+    if (email_domain not in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]):
+        print("dominio inválido")
+        q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería")
+    else:
+        q = email_domain
+    if (q.strip().lower() not in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]):
         p = simpledialog.askstring("Vincular una cuenta", "Parece que estás usando un dominio propio, introduzca el puerto de su conexión.")
         if (p == ""): messagebox.showerror("Error", "Debe especificar el puerto de la conexión a su dominio.");return
         else: smtp_port = p
