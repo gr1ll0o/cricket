@@ -14,6 +14,7 @@ import time
 import os
 import sys
 import shutil
+from webbrowser import open_new
 
 root = tk.Tk()
 root.overrideredirect(True)
@@ -31,6 +32,8 @@ def get_resource_path(relative_path):
 
 # Images
 img = Image.open(get_resource_path('assets/logo.png'))  # ejemplo: "logo.png"
+img2 = Image.open(get_resource_path('assets/credits-image.png'))  # ejemplo: "logo.png"
+img3 = Image.open(get_resource_path('assets/credits-image2.png'))  # ejemplo: "logo.png"
 root.iconbitmap(get_resource_path("assets/icon.ico"))
 
 user = ""
@@ -42,6 +45,9 @@ DATADIR = 'data.json'
 CONFIGDIR = 'config.json'
 after = ""
 
+VERSION = 1.0
+DATE = "20/07/2025"
+
 json_global = {}
 configs = {}
 
@@ -50,6 +56,41 @@ signature_path = ""
 
 imgs = []
 len_imgs = 0
+
+def show_credits():
+    credits = tk.Toplevel(root)
+    credits.geometry("300x300")
+    credits.title("Creditos")
+    credits.overrideredirect(False)
+    credits.resizable(False, False)
+    credits.maxsize(300, 300)
+    credits.minsize(300, 300)
+    credits.config(bg="#001536")
+    credits.iconbitmap(get_resource_path("assets/icon.ico"))
+
+    label = tk.Label(credits, text="-- cricket --", font=('Arial', 26, 'bold italic'), bg="#001536", fg="#fff")
+    label.place(relx=0.5, y=28, anchor="center")
+
+    image = img2.resize((180, 180), Image.LANCZOS).convert("RGBA")  # opcional, ajustar tamaño
+    photo = ImageTk.PhotoImage(image)
+    image2 = img3.resize((180, 180), Image.LANCZOS).convert("RGBA")  # opcional, ajustar tamaño
+    photo2 = ImageTk.PhotoImage(image2)
+    logo_img = tk.Label(credits, image=photo, bg="#001536")
+    logo_img.bind('<Enter>', lambda e: logo_img.config(image=photo2))
+    logo_img.bind('<Leave>', lambda e: logo_img.config(image=photo))
+    logo_img.place(relx=0.5, y=131, anchor="center")
+
+    ver = tk.Label(credits, text=f"Version {str(VERSION)} | Builded on {str(DATE)}", font=('Arial', 12), bg="#001536", fg="#fff")
+    ver.place(relx=0.5, y=226, anchor="center")
+
+    label2 = tk.Label(credits, text="Developed by Grillo", font=('Arial', 11), bg="#001536", fg="#fff")
+    label2.place(relx=0.5, y=245, anchor="center")
+
+    github = tk.Label(credits, text="GitHub", font=('Arial', 11, 'underline'), bg="#001536", fg="#2772E9", cursor="hand2")
+    github.place(relx=0.5, y=270, anchor="center")
+    github.bind("<Button-1>", lambda e: open_new("https://github.com/gr1ll0o/cricket"))
+
+    credits.mainloop()
 
 def show_settings_menu(event):
     settings_menu.post(event.x_root, event.y_root)
@@ -143,7 +184,7 @@ def vinculate_account():
         write_json_configs()
         read_json_configs()
         messagebox.showinfo("Cuenta conectada", "La cuenta ha sido vinculada con éxito")
-    else: messagebox.showerror("Error", "No se pudo conectar con la cuenta. Intentalo de nuevo y corrobora los datos.")
+    else: messagebox.showerror("Error", f"No se pudo vincular ({request})")
 
 def try_to_connect(user, password, host, port):
     try:
@@ -152,11 +193,15 @@ def try_to_connect(user, password, host, port):
             server.starttls()
         else:
             server = smtplib.SMTP_SSL(host, port)
-        
+    except Exception as e:
+        print(f"ERROR AL CONECTAR: {e}")
+        return "ERROR AL CONECTAR"   
+    try:
         server.login(user, password)
         return "CONECTADO EXITOSAMENTE"
     except Exception as e:
-        return e
+        print(f"ERROR AL INICIAR SESIÓN: {e}")
+        return "ERROR AL INICIAR SESIÓN"
 
 def signatures():
     print(configs['Signature'])
@@ -774,19 +819,19 @@ listbox.config(font=('Arial', 17, 'bold'),background="#061E44", foreground="#fff
 listbox.place(x=20, y=40, width=300, height=428)
 listbox.bind("<<ListboxSelect>>", on_click_list)
 
-addlist_btn = tk.Button(main_content, activebackground="#011330", activeforeground="#fff", text="Añadir", command=add_list, font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
+addlist_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff", text="Añadir", command=add_list, font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 addlist_btn.place(x=20, y=480)
 addlist_btn.bind('<Button-3>', show_import_menu)
 addlist_btn.bind('<Enter>', lambda e: addlist_btn.config(bg="#012965"))
 addlist_btn.bind('<Leave>', lambda e: addlist_btn.config(bg="#061E44"))
 
-dellist_btn = tk.Button(main_content, activebackground="#011330", activeforeground="#fff", command=del_list,text="Eliminar", font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
+dellist_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff", command=del_list,text="Eliminar", font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 dellist_btn.place(x=113, y=480)
 dellist_btn.bind('<Button-3>', show_del_menu)
 dellist_btn.bind('<Enter>', lambda e: dellist_btn.config(bg="#012965"))
 dellist_btn.bind('<Leave>', lambda e: dellist_btn.config(bg="#061E44"))
 
-import_btn = tk.Button(main_content, activebackground="#011330", activeforeground="#fff",command=import_file, text="Importar", font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
+import_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff",command=import_file, text="Importar", font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 import_btn.place(x=220, y=480)
 import_btn.bind('<Enter>', lambda e: import_btn.config(bg="#012965"))
 import_btn.bind('<Leave>', lambda e: import_btn.config(bg="#061E44"))
@@ -830,22 +875,22 @@ scrollbar = tk.Scrollbar(console_frame, command=console_text.yview)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 console_text.config(yscrollcommand=scrollbar.set)
 
-bold_btn = tk.Button(main_content, command=lambda: style_text("bold"),  activebackground="#011330", activeforeground="#fff", text=" B ", font=('Arial', 17, "bold"), bg="#061E44", fg="#fff", bd=0)
+bold_btn = tk.Button(main_content, cursor="hand2", command=lambda: style_text("bold"),  activebackground="#011330", activeforeground="#fff", text=" B ", font=('Arial', 17, "bold"), bg="#061E44", fg="#fff", bd=0)
 bold_btn.place(x=876, y=400)
 bold_btn.bind('<Enter>', lambda e: bold_btn.config(bg="#012965"))
 bold_btn.bind('<Leave>', lambda e: bold_btn.config(bg="#061E44")) 
 
-italic_btn = tk.Button(main_content, command=lambda: style_text("italic"), activebackground="#011330", activeforeground="#fff", text="  I  ", font=('Times', 17, "italic"), bg="#061E44", fg="#fff", bd=0)
+italic_btn = tk.Button(main_content, cursor="hand2", command=lambda: style_text("italic"), activebackground="#011330", activeforeground="#fff", text="  I  ", font=('Times', 17, "italic"), bg="#061E44", fg="#fff", bd=0)
 italic_btn.place(x=820, y=400)
 italic_btn.bind('<Enter>', lambda e: italic_btn.config(bg="#012965"))
 italic_btn.bind('<Leave>', lambda e: italic_btn.config(bg="#061E44")) 
 
-attach_btn = tk.Button(main_content, command=attach_img, activebackground="#011330", activeforeground="#fff", text="📎", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
+attach_btn = tk.Button(main_content, cursor="hand2", command=attach_img, activebackground="#011330", activeforeground="#fff", text="📎", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
 attach_btn.place(x=930, y=400)
 attach_btn.bind('<Enter>', lambda e: attach_btn.config(bg="#012965"))
 attach_btn.bind('<Leave>', lambda e: attach_btn.config(bg="#061E44")) 
 
-send_btn = tk.Button(main_content, command=start_sending_emails, activebackground="#011330", activeforeground="#fff", text="   Enviar   ", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
+send_btn = tk.Button(main_content, cursor="hand2", command=start_sending_emails, activebackground="#011330", activeforeground="#fff", text="   Enviar   ", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
 send_btn.place(x=845, y=483)
 send_btn.bind('<Button-3>', show_send_menu)
 send_btn.bind('<Enter>', lambda e: send_btn.config(bg="#012965"))
@@ -858,7 +903,7 @@ settings_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 settings_menu.add_command(label="Firmas", command=signatures)
 settings_menu.add_separator()
 settings_menu.add_command(label="Administrar cuenta...", command=check_account)
-settings_menu.add_command(label="Creditos...", command=signatures)
+settings_menu.add_command(label="Creditos...", command=show_credits)
 
 dellist_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 dellist_menu.add_command(label="Eliminar un email", command=del_email)
