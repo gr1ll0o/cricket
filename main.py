@@ -56,6 +56,7 @@ signature_path = ""
 
 imgs = []
 len_imgs = 0
+onsending = False
 
 def show_credits():
     credits = tk.Toplevel(root)
@@ -93,10 +94,12 @@ def show_credits():
     credits.mainloop()
 
 def show_settings_menu(event):
+    if (onsending == True): return
     settings_menu.post(event.x_root, event.y_root)
 
 def show_del_menu(event):
     try:
+        if (onsending == True): return
         listbox.get(listbox.curselection())
         dellist_menu.post(event.x_root, event.y_root)
     except:
@@ -104,6 +107,7 @@ def show_del_menu(event):
 
 def show_import_menu(event):
     try:
+        if (onsending == True): return
         listbox.get(listbox.curselection())
         addlist_menu.post(event.x_root, event.y_root)
     except:
@@ -267,6 +271,7 @@ def signatures():
             messagebox.showinfo("Firmas", "Se ha eliminado la firma registrada")
 
 def show_send_menu(event):
+    if (onsending == True): return
     send_menu.post(event.x_root, event.y_root)
 
 def attach_img():
@@ -280,7 +285,7 @@ def attach_img():
         except Exception as e: messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
 
 def send_emails():
-    global imgs, len_imgs
+    global imgs, len_imgs, onsending
     transmitter = user
     selected_list = listbox.get(listbox.curselection())
     key = selected_list.split(" (")[0]
@@ -358,9 +363,15 @@ def send_emails():
         messagebox.showerror("Error", f"Error al enviar los emails: {e}")
         log("ERROR: {e}")
         print(f"Error al enviar el correo: {e}")
+    
+    addlist_btn.config(state=tk.NORMAL)
+    dellist_btn.config(state=tk.NORMAL)
+    import_btn.config(state=tk.NORMAL)
+    send_btn.config(state=tk.NORMAL)
+    onsending = False
 
 def send_email(mail):
-    global msg, imgs, len_imgs
+    global msg, imgs, len_imgs, onsending
     transmitter = user
     print(transmitter)
     email_destiny = mail
@@ -436,6 +447,12 @@ def send_email(mail):
         messagebox.showerror("Error", f"Error al enviar los emails: {e}")
         log("ERROR: {e}")
         print(f"Error al enviar el correo: {e}")
+    
+    addlist_btn.config(state=tk.NORMAL)
+    dellist_btn.config(state=tk.NORMAL)
+    import_btn.config(state=tk.NORMAL)
+    send_btn.config(state=tk.NORMAL)
+    onsending = False
 
 def fast_send():
     if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""):messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
@@ -559,6 +576,7 @@ def import_file():
         elif c == False: 
             print(json_global)
             name = simpledialog.askstring("Crear lista de importación", "Ingrese el nombre de la nueva lista", parent=root)
+            if name == None: return
             if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
             if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
             if (json_global != {}):
@@ -581,6 +599,7 @@ def import_file():
         add_list_imports(name)
 
 def start_sending_emails(mode=1, mail_from_mode_2=None):
+    global onsending
     if (user == "" or passw == ""): messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en el logo.");return
     if mode == 1: # Multi emails (default)
         try:
@@ -616,8 +635,14 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
     else: # Error
         raise Exception("Modo no válido")
 
+    onsending = True
+    addlist_btn.config(state=tk.DISABLED)
+    dellist_btn.config(state=tk.DISABLED)
+    import_btn.config(state=tk.DISABLED)
+    send_btn.config(state=tk.DISABLED)
+
 def send_all_emails(list):
-    global imgs, len_imgs
+    global imgs, len_imgs, onsending
     transmitter = user
     emails_destiny = list
     title_msg = subject_text.get("1.0", tk.END)
@@ -694,6 +719,12 @@ def send_all_emails(list):
         messagebox.showerror("Error", f"Error al enviar los emails: {e}")
         log("ERROR: {e}")
         print(f"Error al enviar el correo: {e}")
+
+    addlist_btn.config(state=tk.NORMAL)
+    dellist_btn.config(state=tk.NORMAL)
+    import_btn.config(state=tk.NORMAL)
+    send_btn.config(state=tk.NORMAL)
+    onsending = False
 
 def on_click_list(event):
     try:
@@ -845,6 +876,17 @@ def refresh():
     read_json_configs()
     read_json_lists()
 
+def on_leave(event):
+    global console_text
+    if (onsending): print("SE ESTÁ ENVIANDO UN MENSAJE");return
+    addlist_btn.config(bg="#061E44")
+    dellist_btn.config(bg="#061E44")
+    import_btn.config(bg="#061E44")
+    send_btn.config(bg="#061E44")
+    console_text.config(state="normal")
+    console_text.delete("1.0", tk.END)
+    console_text.config(state="disabled")
+
 def close_window(): root.destroy()
 
 #! SETUP ###################################
@@ -855,6 +897,8 @@ photo = ImageTk.PhotoImage(img)
 logo_img = tk.Label(title_bar, image=photo, bg="#000d21")
 logo_img.place(x=7)
 logo_img.bind('<Button-3>', show_settings_menu)
+logo_img.bind("<Enter>", lambda e: (log("Presione CLICK DERECHO para gestionar su cuenta y otras preferencias.", False)) if not onsending else None)
+logo_img.bind("<Leave>", lambda e: (on_leave(e)) if not onsending else None)
 title = tk.Label(title_bar, text="cricket", bg="#000d21", fg="white", font=('Arial', 22, "italic bold"), pady=7)
 title.place(x=64, y=3)
 close_btn = tk.Button(title_bar, text=" X ",activebackground="#f00", activeforeground="#fff", command=close_window, bg="#000d21", fg="white", bd=0, padx=10, font=('Arial', 20, "bold"))
@@ -885,19 +929,19 @@ listbox.bind("<<ListboxSelect>>", on_click_list)
 addlist_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff", text="Añadir", command=add_list, font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 addlist_btn.place(x=20, y=480)
 addlist_btn.bind('<Button-3>', show_import_menu)
-addlist_btn.bind('<Enter>', lambda e: addlist_btn.config(bg="#012965"))
-addlist_btn.bind('<Leave>', lambda e: addlist_btn.config(bg="#061E44"))
+addlist_btn.bind('<Enter>', lambda e: (addlist_btn.config(bg="#012965"), log("Añada un email manualmente presionando CLICK DERECHO", False)) if not onsending else None)
+addlist_btn.bind('<Leave>', lambda e: on_leave(e))
 
 dellist_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff", command=del_list,text="Eliminar", font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 dellist_btn.place(x=113, y=480)
 dellist_btn.bind('<Button-3>', show_del_menu)
-dellist_btn.bind('<Enter>', lambda e: dellist_btn.config(bg="#012965"))
-dellist_btn.bind('<Leave>', lambda e: dellist_btn.config(bg="#061E44"))
+dellist_btn.bind('<Enter>', lambda e: (dellist_btn.config(bg="#012965"), log("Elimine un email de la lista presionando CLICK DERECHO", False)) if not onsending else None)
+dellist_btn.bind('<Leave>', lambda e: on_leave(e))
 
 import_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff",command=import_file, text="Importar", font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 import_btn.place(x=220, y=480)
-import_btn.bind('<Enter>', lambda e: import_btn.config(bg="#012965"))
-import_btn.bind('<Leave>', lambda e: import_btn.config(bg="#061E44"))
+import_btn.bind('<Enter>', lambda e: import_btn.config(bg="#012965") if not onsending else None)
+import_btn.bind('<Leave>', lambda e: on_leave(e))
 
 list_emails_label = tk.Label(main_content, bg="#001536", fg="#fff", text="", font=('Arial', 16, "bold"))
 list_emails_label.place(x=332, y=10)
@@ -956,8 +1000,8 @@ attach_btn.bind('<Leave>', lambda e: attach_btn.config(bg="#061E44"))
 send_btn = tk.Button(main_content, cursor="hand2", command=start_sending_emails, activebackground="#011330", activeforeground="#fff", text="   Enviar   ", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
 send_btn.place(x=845, y=483)
 send_btn.bind('<Button-3>', show_send_menu)
-send_btn.bind('<Enter>', lambda e: send_btn.config(bg="#012965"))
-send_btn.bind('<Leave>', lambda e: send_btn.config(bg="#061E44")) 
+send_btn.bind('<Enter>', lambda e: (send_btn.config(bg="#012965"), log("Acceda a mas opciones de envío presionando CLICK DERECHO")) if not onsending else None)
+send_btn.bind('<Leave>', lambda e: on_leave(e)) 
 #!##################################################
 
 #! MENUES !#########################################
