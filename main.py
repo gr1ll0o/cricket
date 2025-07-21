@@ -49,7 +49,7 @@ DATADIR = 'data.json'
 CONFIGDIR = 'config.json'
 after = ""
 
-VERSION = 1.0
+VERSION = 1.1
 DATE = "21/07/2025"
 
 json_global = {}
@@ -81,8 +81,8 @@ def show_credits():
     image2 = img3.resize((180, 180), Image.LANCZOS).convert("RGBA")  # opcional, ajustar tamaño
     photo2 = ImageTk.PhotoImage(image2)
     logo_img = tk.Label(credits, image=photo, bg="#001536")
-    logo_img.bind('<Enter>', lambda e: logo_img.config(image=photo2))
-    logo_img.bind('<Leave>', lambda e: logo_img.config(image=photo))
+    logo_img.bind('<ButtonPress>', lambda e: logo_img.config(image=photo2))
+    logo_img.bind('<ButtonRelease>', lambda e: logo_img.config(image=photo))
     logo_img.place(relx=0.5, y=131, anchor="center")
 
     ver = tk.Label(credits, text=f"Version {str(VERSION)} | Builded on {str(DATE)}", font=('Arial', 12), bg="#001536", fg="#fff")
@@ -318,62 +318,67 @@ def send_emails():
         log("Iniciando envíos...\n")
         i=1
         for recipient in emails_destiny:
-            msg = MIMEMultipart('related')
-            msg['Subject'] = title_msg
-            msg['From'] = transmitter
-            msg['To'] = recipient
-            if (signature_path == ""):
-                html = f"""
-                <html>
-                <body>
-                    <p>{body_msg.replace('\n', '<br>')}</p>
-                </body>
-                </html>
-                """
-                print("FIRMA NO REGISTRADA")
-            else:
-                html = f"""
-                <html>
-                <body>
-                    <p>{body_msg.replace('\n', '<br>')}</p><br>
-                    <img src="cid:firma_img" width="450" height="120">
-                </body>
-                </html>
-                """
-                print(f"FIRMA REGISTRADA: {signature_path}")
-            msg.attach(MIMEText(html, 'html'))
-            body_all = body_msg + subject_text.get("1.0", tk.END)
-            imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
-            if len(imgs) == 0: len_imgs = 0
-            if (imgs != []):
-                for path, cid in imgs:
-                    with open(path, 'rb') as f:
+            try:
+                msg = MIMEMultipart('related')
+                msg['Subject'] = title_msg
+                msg['From'] = transmitter
+                msg['To'] = recipient
+                if (signature_path == ""):
+                    html = f"""
+                    <html>
+                    <body>
+                        <p>{body_msg.replace('\n', '<br>')}</p>
+                    </body>
+                    </html>
+                    """
+                    print("FIRMA NO REGISTRADA")
+                else:
+                    html = f"""
+                    <html>
+                    <body>
+                        <p>{body_msg.replace('\n', '<br>')}</p><br>
+                        <img src="cid:firma_img" width="450" height="120">
+                    </body>
+                    </html>
+                    """
+                    print(f"FIRMA REGISTRADA: {signature_path}")
+                msg.attach(MIMEText(html, 'html'))
+                body_all = body_msg + subject_text.get("1.0", tk.END)
+                imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
+                if len(imgs) == 0: len_imgs = 0
+                if (imgs != []):
+                    for path, cid in imgs:
+                        with open(path, 'rb') as f:
+                            img = MIMEImage(f.read())
+                            img.add_header('Content-ID', f'<{cid}>')
+                            msg.attach(img)
+                        print(cid)
+                if (signature_path != ""):
+                    print("Insertando firma...")
+                    with open(signature_path, 'rb') as f:
                         img = MIMEImage(f.read())
-                        img.add_header('Content-ID', f'<{cid}>')
+                        img.add_header('Content-ID', f'<firma_img>')
+                        img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
                         msg.attach(img)
-                    print(cid)
-            if (signature_path != ""):
-                print("Insertando firma...")
-                with open(signature_path, 'rb') as f:
-                    img = MIMEImage(f.read())
-                    img.add_header('Content-ID', f'<firma_img>')
-                    img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
-                    msg.attach(img)
 
-            server.sendmail(transmitter, recipient, msg.as_string())
-            log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
-            i+=1
+                server.sendmail(transmitter, recipient, msg.as_string())
+                log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
+                i+=1
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al enviar email a {recipient}: {e}")
+                log(f"ERROR: {e}")
+                print(f"Error al enviar el correo: {e}")
             
         server.quit()
         log("", False)
         log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
         imgs = []
         len_imgs = 0
-        messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
+        messagebox.showinfo("Emails enviados", "Se han enviado todos los emails")
         print("Correo enviado con éxito!")
     except Exception as e:
-        messagebox.showerror("Error", f"Error al enviar los emails: {e}")
-        log("ERROR: {e}")
+        messagebox.showerror("Error", f"Error al iniciar secuencia de emails: {e}")
+        log(f"ERROR: {e}")
         print(f"Error al enviar el correo: {e}")
     
     addlist_btn.config(state=tk.NORMAL)
@@ -476,6 +481,22 @@ def fast_send():
             messagebox.showerror("Mail inválido", "Introduce un mail válido");return
         else:
             start_sending_emails(2, mail)
+
+def send_identifiers():
+    if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
+    if (data == {}): messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
+    i = simpledialog.askstring("Enviar a identificadores", "Introduce el identificador de listas")
+    all = []
+    lists = ""
+    for list in data:
+        if i in list:
+            lists += f"{list}\n"
+            for mail in data[list]:
+                all.append(mail)
+    print(all)
+    if (lists == ""): messagebox.showinfo("Sin resultados", f"No se encontraron listas con identificador {i}")
+    c = messagebox.askyesno("Confirmar envío", f'Se encontraron listas con el identificador "{i}":\n\n{lists}\n\nPresione "Sí" para confirmar')
+    if (c): start_sending_emails(3)
 
 def send_all_database():
     if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
@@ -660,7 +681,6 @@ def send_all_emails(list):
     title_msg = subject_text.get("1.0", tk.END)
     body_msg = body_text.get("1.0", tk.END)
 
-    # Configuración del servidor SMTP (Gmail en este caso)
     try:
         log("Secuencia de envío iniciada")
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
@@ -674,62 +694,67 @@ def send_all_emails(list):
         log("Iniciando envíos...\n")
         i=1
         for recipient in emails_destiny:
-            msg = MIMEMultipart('related') # CUERPO/MENSAJE
-            msg['Subject'] = title_msg # ASUNTO
-            msg['From'] = transmitter # EMISOR
-            msg['To'] = recipient #RECEPTOR
-            if (signature_path == ""):
-                html = f"""
-                <html>
-                <body>
-                    <p>{body_msg.replace('\n', '<br>')}</p>
-                </body>
-                </html>
-                """
-                print("FIRMA NO REGISTRADA")
-            else:
-                html = f"""
-                <html>
-                <body>
-                    <p>{body_msg.replace('\n', '<br>')}</p><br>
-                    <img src="cid:firma_img" width="450" height="120">
-                </body>
-                </html>
-                """
-                print(f"FIRMA REGISTRADA: {signature_path}")
-            msg.attach(MIMEText(html, 'html'))
-            body_all = body_msg + subject_text.get("1.0", tk.END)
-            imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
-            if len(imgs) == 0: len_imgs = 0
-            if (imgs != []):
-                for path, cid in imgs:
-                    with open(path, 'rb') as f:
+            try:
+                msg = MIMEMultipart('related') # CUERPO/MENSAJE
+                msg['Subject'] = title_msg # ASUNTO
+                msg['From'] = transmitter # EMISOR
+                msg['To'] = recipient #RECEPTOR
+                if (signature_path == ""):
+                    html = f"""
+                    <html>
+                    <body>
+                        <p>{body_msg.replace('\n', '<br>')}</p>
+                    </body>
+                    </html>
+                    """
+                    print("FIRMA NO REGISTRADA")
+                else:
+                    html = f"""
+                    <html>
+                    <body>
+                        <p>{body_msg.replace('\n', '<br>')}</p><br>
+                        <img src="cid:firma_img" width="450" height="120">
+                    </body>
+                    </html>
+                    """
+                    print(f"FIRMA REGISTRADA: {signature_path}")
+                msg.attach(MIMEText(html, 'html'))
+                body_all = body_msg + subject_text.get("1.0", tk.END)
+                imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
+                if len(imgs) == 0: len_imgs = 0
+                if (imgs != []):
+                    for path, cid in imgs:
+                        with open(path, 'rb') as f:
+                            img = MIMEImage(f.read())
+                            img.add_header('Content-ID', f'<{cid}>')
+                            msg.attach(img)
+                        print(cid)
+                if (signature_path != ""):
+                    print("Insertando firma...")
+                    with open(signature_path, 'rb') as f:
                         img = MIMEImage(f.read())
-                        img.add_header('Content-ID', f'<{cid}>')
+                        img.add_header('Content-ID', f'<firma_img>')
+                        img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
                         msg.attach(img)
-                    print(cid)
-            if (signature_path != ""):
-                print("Insertando firma...")
-                with open(signature_path, 'rb') as f:
-                    img = MIMEImage(f.read())
-                    img.add_header('Content-ID', f'<firma_img>')
-                    img.add_header('Content-Disposition', 'inline', filename=os.path.basename(signature_path))
-                    msg.attach(img)
 
-            server.sendmail(transmitter, recipient, msg.as_string())
-            log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
-            i+=1
+                server.sendmail(transmitter, recipient, msg.as_string())
+                log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
+                i+=1
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al enviar a {recipient}: {e}")
+                log(f"ERROR: {e}")
+                print(f"Error al iniciar secuencia de envios: {e}")
             
         server.quit()
         log("", False)
         log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
         imgs = []
         len_imgs = 0
-        messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
+        messagebox.showinfo("Emails enviados", "Se han enviado todos los emails.")
         print("Correo enviado con éxito!")
     except Exception as e:
-        messagebox.showerror("Error", f"Error al enviar los emails: {e}")
-        log("ERROR: {e}")
+        messagebox.showerror("Error", f"Error al enviar a {recipient}: {e}")
+        log(f"ERROR: {e}")
         print(f"Error al enviar el correo: {e}")
 
     addlist_btn.config(state=tk.NORMAL)
@@ -1012,7 +1037,7 @@ attach_btn.bind('<Leave>', lambda e: attach_btn.config(bg="#061E44"))
 send_btn = tk.Button(main_content, cursor="hand2", command=start_sending_emails, activebackground="#011330", activeforeground="#fff", text="   Enviar   ", font=('Arial', 18), bg="#061E44", fg="#fff", bd=0)
 send_btn.place(x=845, y=483)
 send_btn.bind('<Button-3>', show_send_menu)
-send_btn.bind('<Enter>', lambda e: (send_btn.config(bg="#012965"), log("Acceda a mas opciones de envío presionando CLICK DERECHO")) if not onsending else None)
+send_btn.bind('<Enter>', lambda e: (send_btn.config(bg="#012965"), log("Acceda a mas opciones de envío presionando CLICK DERECHO", False)) if not onsending else None)
 send_btn.bind('<Leave>', lambda e: on_leave(e)) 
 #!##################################################
 
@@ -1031,8 +1056,9 @@ addlist_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 addlist_menu.add_command(label="Añadir un email", command=add_email)
 
 send_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
-send_menu.add_command(label="Enviar a toda la base de datos", command=send_all_database)
 send_menu.add_command(label="Envío rápido", command=fast_send)
+send_menu.add_command(label="Envío a todo identificador...", command=send_identifiers)
+send_menu.add_command(label="Enviar a toda la base de datos", command=send_all_database)
 #!##############################################
 
 read_json_lists()
