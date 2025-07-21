@@ -17,7 +17,8 @@ import shutil
 from webbrowser import open_new
 
 root = tk.Tk()
-root.overrideredirect(True)
+root.overrideredirect(False)
+root.title("Cricket")
 root.geometry("1000x600")
 root.update_idletasks()
 w = root.winfo_width();h = root.winfo_height();ws = root.winfo_screenwidth();hs = root.winfo_screenheight()
@@ -160,7 +161,7 @@ def vinculate_account():
     print(email_domain)
     if (email_domain not in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]):
         print("dominio inválido")
-        q = simpledialog.askstring('Vincular una cuenta", "Introduce el host del servicio de mensajería (si su proveedor es Microsoft/Outlook, utilice "smtp.office365.com")')
+        q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería (si su proveedor es Microsoft/Outlook, utilice smtp.office365.com)")
     else:
         q = email_domain
     if (q.strip().lower() not in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]):
