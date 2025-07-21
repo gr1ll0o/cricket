@@ -123,7 +123,7 @@ def check_account():
     for i in list(passw):
         hidden_pw += "*"
     if (user != "" or passw != ""): 
-        q = messagebox.askyesnocancel("Cuenta vinculada", f"Cuenta vinculada\n\nEMAIL: {user}\nPASSW: {hidden_pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione No para cerrar sesión")
+        q = messagebox.askokcancel('Cuenta vinculada', f'Cuenta vinculada\n\nEMAIL: {user}\nPASSW: {hidden_pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione "Cancelar" para cerrar sesión')
         if q == None or q == True: return
         else:
             q = messagebox.askyesno("Confirmar cierre de sesion", f"¿Estás seguro que queres cerrar sesión en {user}?")
@@ -156,7 +156,7 @@ def vinculate_account():
     print(email_domain)
     if (email_domain not in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]):
         print("dominio inválido")
-        q = simpledialog.askstring("Vincular una cuenta", "Introduce el host del servicio de mensajería")
+        q = simpledialog.askstring('Vincular una cuenta", "Introduce el host del servicio de mensajería (si su proveedor es Microsoft/Outlook, utilice "smtp.office365.com")')
     else:
         q = email_domain
     if (q.strip().lower() not in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]):
@@ -213,7 +213,7 @@ def try_to_connect(user, password, host, port):
         html_test = f"""
             <html>
             <body style="background: #000d21;color: #fff;">
-                <div style="margin: 25px;">
+                <div style="margin: 25px;"><br>
                     <center><img src="cid:bannerimg" width=535 height=230></center>
                     <h1>Bienvenido a cricket, {user}</h1>
                     <p style="font-size: 12px;">Su cuenta ha sido vinculada con éxito a cricket. Este correo confirma que su configuración de envío ha sido establecida correctamente y que los mensajes están saliendo sin inconvenientes desde nuestro sistema. Cricket es más que un simple gestor de correos: es una herramienta pensada para brindarle eficiencia, control y estilo a sus comunicaciones. Ya sea que envíe correos individuales o campañas completas, Cricket está optimizado para que el proceso sea rápido, visualmente atractivo y sin complicaciones. Le agradecemos por confiar en nosotros. ¡Estamos comprometidos en brindarle la mejor experiencia posible!<br>Si tiene sugerencias, ideas o necesita soporte, no dude en contactarnos.</p>
