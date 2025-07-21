@@ -172,19 +172,21 @@ def vinculate_account():
     smtp_host = h
     messagebox.showinfo("Resumen de la cuenta", f"EMAIL: {u}\nPASSW: {pw}\nHOST: {smtp_host}\nPORT: {smtp_port}\n\nPresione aceptar para hacer la comprobación de conexión")
     request = try_to_connect(u, pw, h, smtp_port)
-    if (request == "CONECTADO EXITOSAMENTE"): 
-        user = u
-        passw = pw
-        smtp_host = h
-        print(smtp_port)
-        configs['Email'] = user
-        configs['Password'] = passw
-        configs['Host'] = smtp_host
-        configs['Port'] = smtp_port
-        write_json_configs()
-        read_json_configs()
-        messagebox.showinfo("Cuenta conectada", "La cuenta ha sido vinculada con éxito")
-    else: messagebox.showerror("Error", f"No se pudo vincular ({request})")
+    print(request)
+    if (request == "ConnectionError"): messagebox.showerror("Error", "No se ha podido conectar con el host. Verifique servicio ingresado y puerto de haber sido ingresado");return
+    if (request == "LoginError"): messagebox.showerror("Error", "No se ha podido iniciar sesión. Verifique correo electrónico y contraseña. Pruebe generar una contraseña de aplicación desde su panel de control para usarla.");return
+    if (request == "SendEmailError"): messagebox.showerror("Error", f"Su cuenta {u} parece no estar habilitada para enviar correos electrónicos desde aplicaciones de tercero. Verifique configuración y permisos de su dominio o email.");return
+    user = u
+    passw = pw
+    smtp_host = h
+    print(smtp_port)
+    configs['Email'] = user
+    configs['Password'] = passw
+    configs['Host'] = smtp_host
+    configs['Port'] = smtp_port
+    write_json_configs()
+    read_json_configs()
+    messagebox.showinfo("Cuenta conectada", "La cuenta ha sido vinculada con éxito. Recibió un email de diagnóstico a su casilla.")
 
 def try_to_connect(user, password, host, port):
     try:
@@ -195,13 +197,27 @@ def try_to_connect(user, password, host, port):
             server = smtplib.SMTP_SSL(host, port)
     except Exception as e:
         print(f"ERROR AL CONECTAR: {e}")
-        return "ERROR AL CONECTAR"   
+        return "ConnectionError"   
+    
     try:
         server.login(user, password)
-        return "CONECTADO EXITOSAMENTE"
     except Exception as e:
         print(f"ERROR AL INICIAR SESIÓN: {e}")
-        return "ERROR AL INICIAR SESIÓN"
+        return "LoginError"
+    
+    try:
+        msg = MIMEMultipart('related')
+        msg["Subject"] = "CRICKET - Conexión exitosa"
+        msg["From"] = user
+        msg["To"] = user
+        msg.attach(MIMEText(f'Su cuenta {user} ha sido vinculada con éxito y está habilitada a enviar correos electrónicos. Este mensaje es un diagnóstico del propio programa.\n\nDisfrute de usar cricket! Visite el código fuente <a href="https://github.com/gr1ll0o/cricket">aquí</a>\n<i>Att: Grillo.</i>', 'html'))
+
+        server.sendmail(user, user, msg.as_string())
+        server.quit()
+        return "ENVÍO EXITOSO"
+    except Exception as e:
+        print(f"ERROR AL ENVIAR CORREO: {e}")
+        return "SendEmailError"
 
 def signatures():
     print(configs['Signature'])
@@ -245,6 +261,7 @@ def attach_img():
         except Exception as e: messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
 
 def send_emails():
+    global imgs, len_imgs
     transmitter = user
     selected_list = listbox.get(listbox.curselection())
     key = selected_list.split(" (")[0]
@@ -255,7 +272,12 @@ def send_emails():
     try:
         log("> Secuencia de Envío Iniciada")
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
+        if smtp_host in "smtp.office365.com":
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        else: server = smtplib.SMTP_SSL(smtp_host, smtp_port)  #SSL
         server.login(transmitter, passw) # Iniciar sesión
         log("Iniciando envíos...\n")
         i=1
@@ -316,8 +338,9 @@ def send_emails():
         print(f"Error al enviar el correo: {e}")
 
 def send_email(mail):
-    global msg, imgs
+    global msg, imgs, len_imgs
     transmitter = user
+    print(transmitter)
     email_destiny = mail
     title_msg = subject_text.get("1.0", tk.END).strip()
     body_msg = body_text.get("1.0", tk.END).strip()
@@ -326,7 +349,12 @@ def send_email(mail):
     try:
         log("> Secuencia de Envío Iniciada")
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
+        if smtp_host in "smtp.office365.com":
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        else: server = smtplib.SMTP_SSL(smtp_host, smtp_port)  #SSL
         server.login(transmitter, passw) # Iniciar sesión
         log("Iniciando envíos...\n")
 
@@ -564,6 +592,7 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
         raise Exception("Modo no válido")
 
 def send_all_emails(list):
+    global imgs, len_imgs
     transmitter = user
     emails_destiny = list
     title_msg = subject_text.get("1.0", tk.END)
@@ -571,12 +600,14 @@ def send_all_emails(list):
 
     # Configuración del servidor SMTP (Gmail en este caso)
     try:
-        log("======================", False)
-        log("     CRICKET v1.0     ", False)
-        log("  by Grillo Software  ", False)
-        log("======================\n", False)
+        log("Secuencia de envío iniciada")
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # Conexión SSL
+        if smtp_host in "smtp.office365.com":
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        else: server = smtplib.SMTP_SSL(smtp_host, smtp_port)  #SSL
         server.login(transmitter, passw) # Iniciar sesión
         log("Iniciando envíos...\n")
         i=1
@@ -627,6 +658,8 @@ def send_all_emails(list):
         server.quit()
         log("", False)
         log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
+        imgs = []
+        len_imgs = 0
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
         print("Correo enviado con éxito!")
     except Exception as e:
