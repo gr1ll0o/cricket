@@ -296,12 +296,14 @@ def attach_img():
             body_text.insert(tk.END, f'\n<img src="cid:imagen{len_imgs}">')
         except Exception as e: messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
 
-def send_emails():
-    global imgs, len_imgs, onsending
+def send_emails(ids=False):
+    global imgs, len_imgs, onsending, alls
     transmitter = user
-    selected_list = listbox.get(listbox.curselection())
-    key = selected_list.split(" (")[0]
-    emails_destiny = data[key]
+    if not ids: 
+        selected_list = listbox.get(listbox.curselection())
+        key = selected_list.split(" (")[0]
+        emails_destiny = data[key]
+    else: emails_destiny = alls
     title_msg = subject_text.get("1.0", tk.END)
     body_msg = body_text.get("1.0", tk.END)
 
@@ -483,20 +485,21 @@ def fast_send():
             start_sending_emails(2, mail)
 
 def send_identifiers():
+    global alls
     if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
     if (data == {}): messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
     i = simpledialog.askstring("Enviar a identificadores", "Introduce el identificador de listas")
-    all = []
+    alls = []
     lists = ""
     for list in data:
         if i in list:
             lists += f"{list}\n"
             for mail in data[list]:
-                all.append(mail)
-    print(all)
-    if (lists == ""): messagebox.showinfo("Sin resultados", f"No se encontraron listas con identificador {i}")
-    c = messagebox.askyesno("Confirmar envío", f'Se encontraron listas con el identificador "{i}":\n\n{lists}\n\nPresione "Sí" para confirmar')
-    if (c): start_sending_emails(3)
+                alls.append(mail)
+    print(alls)
+    if (lists == ""): messagebox.showinfo("Sin resultados", f'No se encontraron listas con identificador "{i}"');return
+    c = messagebox.askyesno("Confirmar envío", f'Se encontraron listas con el identificador "{i}":\n\n{lists}\nPresione "Sí" para confirmar')
+    if (c): start_sending_emails(4)
 
 def send_all_database():
     if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
@@ -632,7 +635,7 @@ def import_file():
         add_list_imports(name)
 
 def start_sending_emails(mode=1, mail_from_mode_2=None):
-    global onsending
+    global onsending, alls
     if (user == "" or passw == ""): messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en el logo.");return
     if mode == 1: # Multi emails (default)
         try:
@@ -665,6 +668,13 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
         print(f'ASUNTO: {subject_text.get("1.0", tk.END)}')
         print(f'MENSAJE: {body_text.get("1.0", tk.END)}')
         threading.Thread(target=send_all_emails, args=(all,)).start()
+    elif mode == 4: # ID's
+        print(alls)
+        print(f"ENVIO A IDENTIFICADORES")
+        print(f'ASUNTO: {subject_text.get("1.0", tk.END)}')
+        print(f'MENSAJE: {body_text.get("1.0", tk.END)}')
+        print(f'DESTINATARIOS: {alls}')
+        threading.Thread(target=send_emails, args=(True,)).start()
     else: # Error
         raise Exception("Modo no válido")
 
