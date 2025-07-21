@@ -46,7 +46,7 @@ CONFIGDIR = 'config.json'
 after = ""
 
 VERSION = 1.0
-DATE = "20/07/2025"
+DATE = "21/07/2025"
 
 json_global = {}
 configs = {}
@@ -229,10 +229,11 @@ def try_to_connect(user, password, host, port):
         """
         msg.attach(MIMEText(html_test, 'html'))
 
-        with open('assets/banner.png', 'rb') as f:
+        banner_path = get_resource_path('assets/banner.png')
+        with open(banner_path, 'rb') as f:
             img_banner = MIMEImage(f.read())
         img_banner.add_header('Content-ID', f'<bannerimg>')
-        img_banner.add_header('Content-Disposition', 'inline', filename=os.path.basename('assets/banner.png.png'))
+        img_banner.add_header('Content-Disposition', 'inline', filename=banner_path)
         msg.attach(img_banner)
 
         server.sendmail(user, user, msg.as_string())
@@ -242,22 +243,29 @@ def try_to_connect(user, password, host, port):
         print(f"ERROR AL ENVIAR CORREO: {e}")
         return "SendEmailError"
 
+def get_install_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
 def signatures():
+    global signature_path
     print(configs['Signature'])
     print(signature_path)
-    if (signature_path == ""):
+    install_dir = get_install_dir()
+    signature_path = configs.get('Signature', "")
+
+    if not signature_path or not os.path.isfile(signature_path):
         try:
             q = messagebox.askyesno("Firmas", "No tenes ninguna firma registrada, ¿Queres regristrar una?")
             if q: origin_path = filedialog.askopenfilename(title="Seleccioná un archivo", filetypes=[('Archivos JPG', '*.jpg')])
             else: return
             if origin_path:
-                name_signature = os.path.basename(f"signature.jpg")
-                script = os.path.dirname(os.path.abspath(__file__))
-                ruta_destino = os.path.join(script, name_signature)
-                shutil.copy(origin_path, ruta_destino)
+                dest_path = os.path.join(install_dir, "signature.jpg")
+                shutil.copy(origin_path, dest_path)
             else: return
         except: messagebox.showerror("Error", "Ha ocurrido un error al abrir el archivo");return
-        configs['Signature'] = name_signature
+        configs['Signature'] = dest_path
         write_json_configs()
         read_json_configs()
         messagebox.showinfo("Firmas", "Se ha registrado su firma con éxito. Será añadida al final de un mensaje a partir de ahora")    
