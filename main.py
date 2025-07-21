@@ -207,10 +207,29 @@ def try_to_connect(user, password, host, port):
     
     try:
         msg = MIMEMultipart('related')
-        msg["Subject"] = "CRICKET - Conexión exitosa"
+        msg["Subject"] = "CRICKET - Conexión exitosa! ✅"
         msg["From"] = user
         msg["To"] = user
-        msg.attach(MIMEText(f'Su cuenta {user} ha sido vinculada con éxito y está habilitada a enviar correos electrónicos. Este mensaje es un diagnóstico del propio programa.\n\nDisfrute de usar cricket! Visite el código fuente <a href="https://github.com/gr1ll0o/cricket">aquí</a>\n<i>Att: Grillo.</i>', 'html'))
+        html_test = f"""
+            <html>
+            <body style="background: #000d21;color: #fff;">
+                <div style="margin: 25px;">
+                    <center><img src="cid:bannerimg" width=535 height=230></center>
+                    <h1>Bienvenido a cricket, {user}</h1>
+                    <p style="font-size: 12px;">Su cuenta ha sido vinculada con éxito a cricket. Este correo confirma que su configuración de envío ha sido establecida correctamente y que los mensajes están saliendo sin inconvenientes desde nuestro sistema. Cricket es más que un simple gestor de correos: es una herramienta pensada para brindarle eficiencia, control y estilo a sus comunicaciones. Ya sea que envíe correos individuales o campañas completas, Cricket está optimizado para que el proceso sea rápido, visualmente atractivo y sin complicaciones. Le agradecemos por confiar en nosotros. ¡Estamos comprometidos en brindarle la mejor experiencia posible!<br>Si tiene sugerencias, ideas o necesita soporte, no dude en contactarnos.</p>
+                    <p style="font-size: 20px;"><b>Atentamente, el equipo de desarrollo.</b></p>
+                    <a href="https://github.com/gr1ll0o/cricket">GitHub</a><br><br>
+                </div>
+            </body>
+            </html>
+        """
+        msg.attach(MIMEText(html_test, 'html'))
+
+        with open('assets/banner.png', 'rb') as f:
+            img_banner = MIMEImage(f.read())
+        img_banner.add_header('Content-ID', f'<bannerimg>')
+        img_banner.add_header('Content-Disposition', 'inline', filename=os.path.basename('assets/banner.png.png'))
+        msg.attach(img_banner)
 
         server.sendmail(user, user, msg.as_string())
         server.quit()
@@ -306,6 +325,9 @@ def send_emails():
                 """
                 print(f"FIRMA REGISTRADA: {signature_path}")
             msg.attach(MIMEText(html, 'html'))
+            body_all = body_msg + subject_text.get("1.0", tk.END)
+            imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
+            if len(imgs) == 0: len_imgs = 0
             if (imgs != []):
                 for path, cid in imgs:
                     with open(path, 'rb') as f:
@@ -382,6 +404,10 @@ def send_email(mail):
             """
             print(f"FIRMA REGISTRADA: {signature_path}")
         msg.attach(MIMEText(html, 'html'))
+
+        body_all = body_msg + subject_text.get("1.0", tk.END)
+        imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
+        if len(imgs) == 0: len_imgs = 0
         if (imgs != []):
             for path, cid in imgs:
                 with open(path, 'rb') as f:
@@ -405,7 +431,6 @@ def send_email(mail):
         log(f"Email a {mail} enviado con éxito.")
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
         imgs = []
-        len_imgs = 0
         print("Correo enviado con éxito!")
     except Exception as e:
         messagebox.showerror("Error", f"Error al enviar los emails: {e}")
@@ -636,6 +661,9 @@ def send_all_emails(list):
                 """
                 print(f"FIRMA REGISTRADA: {signature_path}")
             msg.attach(MIMEText(html, 'html'))
+            body_all = body_msg + subject_text.get("1.0", tk.END)
+            imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
+            if len(imgs) == 0: len_imgs = 0
             if (imgs != []):
                 for path, cid in imgs:
                     with open(path, 'rb') as f:
