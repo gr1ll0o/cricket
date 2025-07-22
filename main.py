@@ -49,8 +49,8 @@ DATADIR = 'data.json'
 CONFIGDIR = 'config.json'
 after = ""
 
-VERSION = 1.1
-DATE = "21/07/2025"
+VERSION = 1.2
+DATE = "22/07/2025"
 
 json_global = {}
 configs = {}
@@ -296,8 +296,9 @@ def attach_img():
             body_text.insert(tk.END, f'\n<img src="cid:imagen{len_imgs}">')
         except Exception as e: messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
 
+# /// [SEND EMAILS]
 def send_emails(ids=False):
-    global imgs, len_imgs, onsending, alls
+    global imgs, len_imgs, onsending, alls, data
     transmitter = user
     if not ids: 
         selected_list = listbox.get(listbox.curselection())
@@ -368,8 +369,13 @@ def send_emails(ids=False):
                 i+=1
             except Exception as e:
                 messagebox.showerror("Error", f"Error al enviar email a {recipient}: {e}")
-                log(f"ERROR: {e}")
-                print(f"Error al enviar el correo: {e}")
+                log(f"ERROR: Eliminando automaticamente {recipient}")
+                # print(f"Error al enviar el correo {e}.")
+                for list in data:
+                    if (recipient in data[list]):
+                        data[list].remove(recipient)
+                write_json_lists()
+                read_json_lists()
             
         server.quit()
         log("", False)
@@ -389,6 +395,7 @@ def send_emails(ids=False):
     send_btn.config(state=tk.NORMAL)
     onsending = False
 
+# /// [SEND EMAIL]
 def send_email(mail):
     global msg, imgs, len_imgs, onsending
     transmitter = user
@@ -463,7 +470,7 @@ def send_email(mail):
         imgs = []
         print("Correo enviado con éxito!")
     except Exception as e:
-        messagebox.showerror("Error", f"Error al enviar los emails: {e}")
+        messagebox.showerror("Error", f"Error al enviar el email: {e}")
         log("ERROR: {e}")
         print(f"Error al enviar el correo: {e}")
     
@@ -634,6 +641,7 @@ def import_file():
         if (not name): return
         add_list_imports(name)
 
+# /// [START SENDING EMAILS]
 def start_sending_emails(mode=1, mail_from_mode_2=None):
     global onsending, alls
     if (user == "" or passw == ""): messagebox.showerror("Error", "No hay ninguna cuenta de correo electrónico vinculada al programa. Vinculela haciendo click derecho en el logo.");return
@@ -684,6 +692,7 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
     import_btn.config(state=tk.DISABLED)
     send_btn.config(state=tk.DISABLED)
 
+# /// [SEND ALL EMAILS]
 def send_all_emails(list):
     global imgs, len_imgs, onsending
     transmitter = user
@@ -751,9 +760,14 @@ def send_all_emails(list):
                 log(f"Enviando mail a {recipient} ({i}/{len(emails_destiny)})")
                 i+=1
             except Exception as e:
-                messagebox.showerror("Error", f"Error al enviar a {recipient}: {e}")
-                log(f"ERROR: {e}")
-                print(f"Error al iniciar secuencia de envios: {e}")
+                messagebox.showerror("Error", f"Error al enviar email a {recipient}: {e}")
+                log(f"ERROR: Eliminando automaticamente {recipient}")
+                # print(f"Error al enviar el correo {e}.")
+                for list in data:
+                    if (recipient in data[list]):
+                        data[list].remove(recipient)
+                write_json_lists()
+                read_json_lists()
             
         server.quit()
         log("", False)
