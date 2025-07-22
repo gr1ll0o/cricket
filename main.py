@@ -578,22 +578,18 @@ def log(msg, showtime=True):
 def del_email():
     selected_list = listbox.get(listbox.curselection())
     key = selected_list.split(" (")[0]
-    e_mails = data[key]
-    text = "";i=0
-    for mail in e_mails:
-        i+=1
-        text += f"{i}) {mail}\n"
-    try:
-        try: mail = int(simpledialog.askstring("Eliminar mail", f"Selecciona email a eliminar\n{text}", parent=root))
-        except: pass
-        erased = json_global[key].pop(mail-1)
-        write_json_lists()
-        update_display_emails(key)
-        read_json_lists()
-        messagebox.showinfo("Email eliminado", f"Se ha eliminado el mail {erased}de la lista {key} con éxito")
-    except Exception as e: messagebox.showerror("Error", "Seleccione un número válido");return
-    
-
+    try: 
+        mail = simpledialog.askstring("Eliminar mail", f'Introduzca el mail de la lista "{key}" a eliminar.', parent=root)
+        if (mail in json_global[key]):
+            json_global[key].remove(mail)
+            write_json_lists()
+            update_display_emails(key)
+            read_json_lists()
+            messagebox.showinfo("Email eliminado", f'Se ha eliminado el mail "{mail}" de la lista "{key}" con éxito')    
+        else:
+            messagebox.showwarning("Email no encontrado", f'No existe "{mail}" en "{key}"')
+    except Exception as e: messagebox.showwarning("ERROR", f'Se produjo un error: {e}')
+        
 def add_email():
     selected_list = listbox.get(listbox.curselection())
     key = selected_list.split(" (")[0]
