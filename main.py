@@ -50,8 +50,8 @@ DATADIR = 'data.json'
 CONFIGDIR = 'config.json'
 after = ""
 
-VERSION = 1.2
-DATE = "22/07/2025"
+VERSION = 1.3
+DATE = "23/07/2025"
 
 json_global = {}
 configs = {}
@@ -290,7 +290,7 @@ def show_send_menu(event):
 
 def attach_img():
     global msg, len_imgs, attachments
-    file_path = filedialog.askopenfilename(title="Seleccionar archivo para adjuntar", filetypes=[("Archivos soportados", "*.png;*.jpg;*.jpeg;*.gif;*.pdf")])
+    file_path = filedialog.askopenfilename(title="Seleccionar archivo para adjuntar", filetypes=[("Imagenes", "*.png;*.jpg;*.jpeg;"), ("Archivos adjuntables", "*.pdf;*.xlsx;*.docx;*.doc;*.xls;*.csv")])
     if file_path:
         try:
             ext = os.path.splitext(file_path)[1].lower()
@@ -299,9 +299,9 @@ def attach_img():
                 len_imgs += 1
                 imgs.append((file_path, f'imagen{len_imgs}'))
                 body_text.insert(tk.END, f'\n<img src="cid:imagen{len_imgs}">')
-            elif ext == ".pdf":
+            elif (ext in ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv']):
                 attachments.append(file_path)
-                messagebox.showinfo("Archivo adjuntado", f"Se adjuntó el PDF correctamente (Actualmente {len(attachments)} PDFs adjuntos)")
+                messagebox.showinfo("Archivo adjuntado", f"Se adjuntó el archivo correctamente (Actualmente {len(attachments)} PDFs adjuntos)")
             else:
                 messagebox.showwarning("Archivo soportado", "El archivo seleccionado no es compatible")
         except Exception as e: 
@@ -523,7 +523,6 @@ def fast_send():
 
 def send_identifiers():
     global alls
-    if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
     if (data == {}): messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
     i = simpledialog.askstring("Enviar a identificadores", "Introduce el identificador de listas")
     alls = []
@@ -536,7 +535,9 @@ def send_identifiers():
     print(alls)
     if (lists == ""): messagebox.showinfo("Sin resultados", f'No se encontraron listas con identificador "{i}"');return
     c = messagebox.askyesno("Confirmar envío", f'Se encontraron listas con el identificador "{i}":\n\n{lists}\nPresione "Sí" para confirmar')
-    if (c): start_sending_emails(4)
+    if (c): 
+        if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
+        start_sending_emails(4)
 
 def send_all_database():
     if (subject_text.get("1.0", tk.END).strip() == "" or body_text.get("1.0", tk.END).strip() == ""): messagebox.showerror("Error", "Escribe un asunto y un mensaje.");return
@@ -557,16 +558,18 @@ def add_list_imports(name):
         file.close()
         emails = [line.strip() for line in content]  # Elimina saltos de línea
         new_emails=[]
+        err=0
         for line in emails:
             if ("@" in line and "." in line):
                 new_emails.append(line)
                 print("VALIDO")
             else: 
-                print("NO VALIDO")
+                print("NO VALIDO");err+=1
         json_global[name] = new_emails
         try: update_display_emails(name);write_json_lists();read_json_lists()
         except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
-        messagebox.showinfo("Importación exitosa", f"Se han importado {len(emails)} mails a {name}")
+        print(f"MAILS: {len(new_emails)}, ERROR: {err}")
+        messagebox.showinfo("Importación", f"Se han importado {len(emails)-err} de {len(emails)} mails a {name}")
 
 def log(msg, showtime=True):
     console_text.config(state=tk.NORMAL)
@@ -631,17 +634,17 @@ def import_file():
                 file.close()
                 emails = [line.strip() for line in content]  # Elimina saltos de línea
                 new_emails = [email for email in emails if email not in json_global[key]]
-                i=0
+                i=0;err=0
                 for line in new_emails:
                     if ("@" in line and "." in line): 
                         json_global[key].append(new_emails[i])
                         print("VALIDO")
                     else: 
-                        print("NO VALIDO")
+                        print("NO VALIDO");err+=1
                     i+=1
                 try: update_display_emails(key);write_json_lists();read_json_lists()
                 except: messagebox.showerror("Error", "Ha ocurrido un error al actualizar la lista de emails");return
-                messagebox.showinfo("Importación exitosa", f"Se han importado {len(new_emails)} mails a {key}")
+                messagebox.showinfo("Importación", f"Se han importado {len(new_emails)-err} de {len(new_emails)} mails a {key}")
         elif c == False: 
             print(json_global)
             name = simpledialog.askstring("Crear lista de importación", "Ingrese el nombre de la nueva lista", parent=root)
