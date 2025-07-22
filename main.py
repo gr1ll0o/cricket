@@ -7,6 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from email import encoders
 import threading
@@ -59,6 +60,7 @@ list_selected = ""
 signature_path = ""
 
 imgs = []
+attachments = []
 len_imgs = 0
 onsending = False
 
@@ -287,18 +289,27 @@ def show_send_menu(event):
     send_menu.post(event.x_root, event.y_root)
 
 def attach_img():
-    global msg, len_imgs
-    img_path = filedialog.askopenfilename(title="Seleccionar imagen para incrustar (opcional)", filetypes=[("Imágenes", "*.png;*.jpg;*.jpeg;*.gif")])
-    if img_path:
+    global msg, len_imgs, attachments
+    file_path = filedialog.askopenfilename(title="Seleccionar archivo para adjuntar", filetypes=[("Archivos soportados", "*.png;*.jpg;*.jpeg;*.gif;*.pdf")])
+    if file_path:
         try:
-            len_imgs += 1
-            imgs.append((img_path, f'imagen{len_imgs}'))
-            body_text.insert(tk.END, f'\n<img src="cid:imagen{len_imgs}">')
-        except Exception as e: messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
+            ext = os.path.splitext(file_path)[1].lower()
+
+            if (ext in ['.png', '.jpg', '.jpeg']):
+                len_imgs += 1
+                imgs.append((file_path, f'imagen{len_imgs}'))
+                body_text.insert(tk.END, f'\n<img src="cid:imagen{len_imgs}">')
+            elif ext == ".pdf":
+                attachments.append(file_path)
+                messagebox.showinfo("Archivo adjuntado", f"Se adjuntó el PDF correctamente (Actualmente {len(attachments)} PDFs adjuntos)")
+            else:
+                messagebox.showwarning("Archivo soportado", "El archivo seleccionado no es compatible")
+        except Exception as e: 
+            messagebox.showerror("Error", f"Hubo un error al adjuntar la imagen ({e})");return
 
 # /// [SEND EMAILS]
 def send_emails(ids=False):
-    global imgs, len_imgs, onsending, alls, data
+    global imgs, len_imgs, onsending, alls, data, attachments, body_text
     transmitter = user
     if not ids: 
         selected_list = listbox.get(listbox.curselection())
@@ -349,6 +360,13 @@ def send_emails(ids=False):
                 body_all = body_msg + subject_text.get("1.0", tk.END)
                 imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
                 if len(imgs) == 0: len_imgs = 0
+                print(attachments)
+                if (attachments != []):
+                    for path in attachments:
+                        with open(path, 'rb') as f:
+                            part = MIMEApplication(f.read(), _subtype="pdf")
+                            part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
+                            msg.attach(part)
                 if (imgs != []):
                     for path, cid in imgs:
                         with open(path, 'rb') as f:
@@ -380,8 +398,11 @@ def send_emails(ids=False):
         server.quit()
         log("", False)
         log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
+        
         imgs = []
         len_imgs = 0
+        attachments = []
+        body_text.delete("1.0", tk.END)
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails")
         print("Correo enviado con éxito!")
     except Exception as e:
@@ -397,7 +418,7 @@ def send_emails(ids=False):
 
 # /// [SEND EMAIL]
 def send_email(mail):
-    global msg, imgs, len_imgs, onsending
+    global msg, imgs, len_imgs, onsending, attachments, body_text
     transmitter = user
     print(transmitter)
     email_destiny = mail
@@ -445,6 +466,13 @@ def send_email(mail):
         body_all = body_msg + subject_text.get("1.0", tk.END)
         imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
         if len(imgs) == 0: len_imgs = 0
+        print(attachments)
+        if (attachments != []):
+            for path in attachments:
+                with open(path, 'rb') as f:
+                    part = MIMEApplication(f.read(), _subtype="pdf")
+                    part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
+                    msg.attach(part)
         if (imgs != []):
             for path, cid in imgs:
                 with open(path, 'rb') as f:
@@ -466,8 +494,10 @@ def send_email(mail):
         server.quit()
         log("", False)
         log(f"Email a {mail} enviado con éxito.")
+        body_text.delete("1.0", tk.END)
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails exitosamente.")
         imgs = []
+        attachments = []
         print("Correo enviado con éxito!")
     except Exception as e:
         messagebox.showerror("Error", f"Error al enviar el email: {e}")
@@ -620,7 +650,7 @@ def import_file():
             print(json_global)
             name = simpledialog.askstring("Crear lista de importación", "Ingrese el nombre de la nueva lista", parent=root)
             if name == None: return
-            if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
+            if len(name) > 20: messagebox.showwarning("Error", "Máximo 20 caracteres permitidos.");return
             if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
             if (json_global != {}):
                 for list in lists:
@@ -632,7 +662,7 @@ def import_file():
     except Exception as e:
         print(e)
         name = simpledialog.askstring("Crear lista de importación", "Ingrese el nombre de la nueva lista", parent=root)
-        if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
+        if len(name) > 20: messagebox.showwarning("Error", "Máximo 20 caracteres permitidos.");return
         if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
         if (json_global != {}):
             for list in lists:
@@ -694,7 +724,7 @@ def start_sending_emails(mode=1, mail_from_mode_2=None):
 
 # /// [SEND ALL EMAILS]
 def send_all_emails(list):
-    global imgs, len_imgs, onsending
+    global imgs, len_imgs, onsending, attachments, body_text
     transmitter = user
     emails_destiny = list
     title_msg = subject_text.get("1.0", tk.END)
@@ -741,6 +771,13 @@ def send_all_emails(list):
                 body_all = body_msg + subject_text.get("1.0", tk.END)
                 imgs = [pair for pair in imgs if f'cid:{pair[1]}' in body_all]
                 if len(imgs) == 0: len_imgs = 0
+                print(attachments)
+                if (attachments != []):
+                    for path in attachments:
+                        with open(path, 'rb') as f:
+                            part = MIMEApplication(f.read(), _subtype="pdf")
+                            part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
+                            msg.attach(part)
                 if (imgs != []):
                     for path, cid in imgs:
                         with open(path, 'rb') as f:
@@ -772,8 +809,10 @@ def send_all_emails(list):
         server.quit()
         log("", False)
         log(f"{i-1} de {len(emails_destiny)} emails enviados con éxito.")
+        attachments = []
         imgs = []
         len_imgs = 0
+        body_text.delete("1.0", tk.END)
         messagebox.showinfo("Emails enviados", "Se han enviado todos los emails.")
         print("Correo enviado con éxito!")
     except Exception as e:
@@ -804,7 +843,7 @@ def update_display_emails(selected_item=list_selected):
     global after, user, passw
     t=""
     key = selected_item.split(" (")[0]
-    list_emails_label.config(text=f"E-mails de {key}")
+    list_emails_label.config(text=f"{key}")
     try:
         for mail in data[key]:
             t += f'{mail}\n'
@@ -866,7 +905,7 @@ def add_list():
     global erased
     erased = ""
     name = simpledialog.askstring("Crear lista", "Ingrese el nombre de la nueva lista", parent=root)
-    if len(name) > 15: messagebox.showwarning("Error", "Máximo 15 caracteres permitidos.");return
+    if len(name) > 20: messagebox.showwarning("Error", "Máximo 20 caracteres permitidos.");return
     if name == '': messagebox.showinfo("Nombre inválido", "Debes añadir un nombre a la lista");return
     if (json_global != {}):
         for list in lists:
@@ -983,7 +1022,7 @@ list_label = tk.Label(main_content, bg="#001536", fg="#fff", text="Listas de e-m
 list_label.place(x=15, y=10)
 
 listbox = tk.Listbox(main_content, border=0)
-listbox.config(font=('Arial', 17, 'bold'),background="#061E44", foreground="#fff", bd=0)
+listbox.config(font=('Arial', 16),background="#061E44", foreground="#fff", bd=0)
 listbox.place(x=20, y=40, width=300, height=428)
 listbox.bind("<<ListboxSelect>>", on_click_list)
 
@@ -1004,11 +1043,11 @@ import_btn.place(x=220, y=480)
 import_btn.bind('<Enter>', lambda e: import_btn.config(bg="#012965") if not onsending else None)
 import_btn.bind('<Leave>', lambda e: on_leave(e))
 
-list_emails_label = tk.Label(main_content, bg="#001536", fg="#fff", text="", font=('Arial', 16, "bold"))
-list_emails_label.place(x=332, y=10)
+list_emails_label = tk.Label(main_content, bg="#001536", fg="#fff", text="", font=('Arial', 15, "bold"))
+list_emails_label.place(x=327, y=10)
 
 emails_frame = tk.Frame(main_content, bg="#001536")
-emails_frame.place(x=335, y=40, width=300, height=410)
+emails_frame.place(x=329, y=40, width=300, height=410)
 emails_display = tk.Text(emails_frame, bg="#001536", fg="#ffffff", font=('Arial', 9), wrap=tk.WORD, state=tk.DISABLED, relief=tk.FLAT, bd=0)
 emails_display.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 emails_scrollbar = tk.Scrollbar(emails_frame, command=emails_display.yview)
