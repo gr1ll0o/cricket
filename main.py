@@ -552,7 +552,9 @@ def fast_send():
 
 def send_identifiers():
     global alls
-    if (data == {}): messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
+    try: 
+        if (data == {}): messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
+    except: messagebox.showwarning("No hay listas", "Debe poseer por lo menos 2 listas para enviar a toda la base de datos");return
     i = simpledialog.askstring("Enviar a identificadores", "Introduce el identificador de listas")
     alls = []
     lists = ""
