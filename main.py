@@ -18,7 +18,7 @@ import shutil
 from webbrowser import open_new
 
 root = tk.Tk()
-root.overrideredirect(False)
+root.withdraw()
 root.title("Cricket")
 root.geometry("1000x600")
 root.resizable(0, 0)
@@ -29,6 +29,35 @@ w = root.winfo_width();h = root.winfo_height();ws = root.winfo_screenwidth();hs 
 x = (ws // 2) - (w // 2)
 y = (hs // 2) - (h // 2)
 root.geometry(f"{w}x{h}+{x}+{y}")
+
+def show_splash():
+    splash = tk.Toplevel()
+    splash.overrideredirect(True)
+    splash.geometry("500x300") 
+
+    ws = splash.winfo_screenwidth()
+    hs = splash.winfo_screenheight()
+    x = (ws // 2) - (500 // 2)
+    y = (hs // 2) - (300 // 2)
+    splash.geometry(f"500x300+{x}+{y}")
+
+    splash.configure(bg="#000d21")
+
+    splash_img = Image.open(get_resource_path("assets/logo.png")).resize((250, 250))
+    splash_photo = ImageTk.PhotoImage(splash_img)
+    img_label = tk.Label(splash, image=splash_photo, bg="#000d21")
+    img_label.image = splash_photo
+    img_label.pack(pady=10)
+
+    label = tk.Label(splash, text=f"Cricket v.{str(VERSION)}", font=('Courier New', 13), fg="#fff", bg="#000d21")
+    label.place(y=257, x=178)
+
+    def close_splash():
+        splash.destroy()
+        root.deiconify() 
+
+    root.withdraw()
+    splash.after(3000, close_splash)
 
 def get_resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -1125,4 +1154,7 @@ send_menu.add_command(label="Enviar a toda la base de datos", command=send_all_d
 
 read_json_lists()
 read_json_configs()
+
+show_splash()
+
 root.mainloop()
