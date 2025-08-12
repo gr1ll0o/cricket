@@ -549,7 +549,6 @@ def fast_send():
             messagebox.showerror("Mail inválido", "Introduce un mail válido");return
         else:
             start_sending_emails(2, mail)
-
 def send_identifiers():
     global alls
     try: 
@@ -1097,7 +1096,7 @@ subject_text.place(x=640, y=35)
 body_label = tk.Label(main_content, bg="#001536", fg="#fff", text="Mensaje", font=('Arial', 12, "bold"))
 body_label.place(x=638, y=76)
 
-body_text = tk.Text(main_content, padx=5, pady=5, font=('Arial', 13), bg="#082350", fg="#fff", bd=0, width=37, height=18)
+body_text = tk.Text(main_content, padx=5, pady=5, wrap="word", font=('Arial', 13), bg="#082350", fg="#fff", bd=0, width=37, height=18)
 body_text.configure(insertbackground='#fff')
 body_text.place(x=640, y=100)
 
