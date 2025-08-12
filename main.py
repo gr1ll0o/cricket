@@ -70,6 +70,7 @@ img2 = Image.open(get_resource_path('assets/credits-image.png'))
 img3 = Image.open(get_resource_path('assets/credits-image2.png'))
 root.iconbitmap(get_resource_path("assets/icon.ico"))
 
+fonts = ["Arial", "Times New Roman", "Verdana", "Georgia"]
 font = "Arial"
 
 user = ""
@@ -987,19 +988,20 @@ def del_list():
 
 def change_font():
     global font
-    f = simpledialog.askinteger("Cambiar fuente", "Fuentes disponibles:\n1. Arial\n2. Times New Roman\n\nEscriba el número de la fuente deseada")
+    fonts_t = ""
+    for i in range(len(fonts)):
+        fonts_t += f"{i+1}. {fonts[i]}\n"
+    f = simpledialog.askinteger("Cambiar fuente", f"Fuentes disponibles:\n{fonts_t}\nEscriba el número de la fuente deseada")
     if (f):
-        match int(f):
-            case 1:
-                font = "Arial"
-                messagebox.showinfo("Fuente cambiada", "Ahora la fuente es Arial.")
-            case 2: 
-                font = "Times New Roman"
-                messagebox.showinfo("Fuente cambiada", "Ahora la fuente es Times New Roman.")
-            case _:
-                messagebox.showerror("Error", "Número inválido")
-    print(font)
-    body_text.config(font=(font, 13))
+        for i in range(len(fonts)):
+            if (f == i+1):
+                font = fonts[f-1]
+                messagebox.showinfo("Fuente cambiada", f"Se ha cambiado la fuente a {font}")
+                body_text.config(font=(font, 13))
+                print(font)
+                return
+        messagebox.showwarning("Error", "Fuente no válida")
+    
 
 def style_text(mode):
     if (mode == "bold"):
