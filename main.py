@@ -70,6 +70,8 @@ img2 = Image.open(get_resource_path('assets/credits-image.png'))
 img3 = Image.open(get_resource_path('assets/credits-image2.png'))
 root.iconbitmap(get_resource_path("assets/icon.ico"))
 
+font = "Arial"
+
 user = ""
 passw = ""
 smtp_host = ""
@@ -370,7 +372,7 @@ def send_emails(ids=False):
                     html = f"""
                     <html>
                     <body>
-                        <p>{body_msg.replace('\n', '<br>')}</p>
+                        <p style="font-family: {font}">{body_msg.replace('\n', '<br>')}</p>
                     </body>
                     </html>
                     """
@@ -379,7 +381,7 @@ def send_emails(ids=False):
                     html = f"""
                     <html>
                     <body>
-                        <p>{body_msg.replace('\n', '<br>')}</p><br>
+                        <p style="font-family: {font}">{body_msg.replace('\n', '<br>')}</p><br>
                         <img src="cid:firma_img" width="450" height="120">
                     </body>
                     </html>
@@ -454,7 +456,6 @@ def send_email(mail):
     title_msg = subject_text.get("1.0", tk.END).strip()
     body_msg = body_text.get("1.0", tk.END).strip()
 
-    # Configuración del servidor SMTP (Gmail en este caso)
     try:
         log("> Secuencia de Envío Iniciada")
         root.after(3000, log(f"Iniciando sesión en {transmitter}..."))
@@ -475,7 +476,7 @@ def send_email(mail):
             html = f"""
             <html>
             <body>
-                <p>{body_msg.replace('\n', '<br>')}</p>
+                <p style="font-family: {font}">{body_msg.replace('\n', '<br>')}</p>
             </body>
             </html>
             """
@@ -484,7 +485,7 @@ def send_email(mail):
             html = f"""
             <html>
             <body>
-                <p>{body_msg.replace('\n', '<br>')}</p><br>
+                <p style="font-family: {font}">{body_msg.replace('\n', '<br>')}</p><br>
                 <img src="cid:firma_img" width="450" height="120">
             </body>
             </html>
@@ -781,7 +782,7 @@ def send_all_emails(list):
                     html = f"""
                     <html>
                     <body>
-                        <p>{body_msg.replace('\n', '<br>')}</p>
+                        <p style="font-family: {font}">{body_msg.replace('\n', '<br>')}</p>
                     </body>
                     </html>
                     """
@@ -790,7 +791,7 @@ def send_all_emails(list):
                     html = f"""
                     <html>
                     <body>
-                        <p>{body_msg.replace('\n', '<br>')}</p><br>
+                        <p style="font-family: {font}">{body_msg.replace('\n', '<br>')}</p><br>
                         <img src="cid:firma_img" width="450" height="120">
                     </body>
                     </html>
@@ -984,6 +985,22 @@ def del_list():
         email_selected_label.config(text="")
         list_emails_label.config(text="")
 
+def change_font():
+    global font
+    f = simpledialog.askinteger("Cambiar fuente", "Fuentes disponibles:\n1. Arial\n2. Times New Roman\n\nEscriba el número de la fuente deseada")
+    if (f):
+        match int(f):
+            case 1:
+                font = "Arial"
+                messagebox.showinfo("Fuente cambiada", "Ahora la fuente es Arial.")
+            case 2: 
+                font = "Times New Roman"
+                messagebox.showinfo("Fuente cambiada", "Ahora la fuente es Times New Roman.")
+            case _:
+                messagebox.showerror("Error", "Número inválido")
+    print(font)
+    body_text.config(font=(font, 13))
+
 def style_text(mode):
     if (mode == "bold"):
         body_text.insert(tk.END, "<b></b>")
@@ -1136,7 +1153,9 @@ send_btn.bind('<Leave>', lambda e: on_leave(e))
 #! MENUES !#########################################
 settings_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 # settings_menu.add_command(label="Importar texto", command=lambda: print("EN DESARROLLO"))
-settings_menu.add_command(label="Firmas", command=signatures)
+settings_menu.add_command(label="Fuente de texto", command=change_font)
+settings_menu.add_separator()
+settings_menu.add_command(label="Firma...", command=signatures)
 settings_menu.add_separator()
 settings_menu.add_command(label="Administrar cuenta...", command=check_account)
 settings_menu.add_command(label="Creditos...", command=show_credits)
