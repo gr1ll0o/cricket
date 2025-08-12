@@ -82,8 +82,8 @@ DATADIR = 'data.json'
 CONFIGDIR = 'config.json'
 after = ""
 
-VERSION = 1.3
-DATE = "23/07/2025"
+VERSION = 1.4
+DATE = "16/08/2025"
 
 json_global = {}
 configs = {}
@@ -1001,7 +1001,6 @@ def change_font():
                 print(font)
                 return
         messagebox.showwarning("Error", "Fuente no válida")
-    
 
 def style_text(mode):
     if (mode == "bold"):
@@ -1073,6 +1072,10 @@ listbox = tk.Listbox(main_content, border=0)
 listbox.config(font=('Arial', 16),background="#061E44", foreground="#fff", bd=0)
 listbox.place(x=20, y=40, width=300, height=428)
 listbox.bind("<<ListboxSelect>>", on_click_list)
+
+scrollbar = tk.Scrollbar(main_content, orient="vertical", command=listbox.yview)
+listbox.config(yscrollcommand=scrollbar.set)
+scrollbar.place(x=305, y=40, width=15, height=428)
 
 addlist_btn = tk.Button(main_content, cursor="hand2", activebackground="#011330", activeforeground="#fff", text="Añadir", command=add_list, font=('Arial', 17), bg="#061E44", fg="#fff", bd=0)
 addlist_btn.place(x=20, y=480)
@@ -1178,5 +1181,8 @@ read_json_lists()
 read_json_configs()
 
 show_splash()
+log("Bienvenido de nuevo!", False)
+log("", False)
+log(f">>>> Cricket v.{VERSION} <<<<", False)
 
 root.mainloop()
