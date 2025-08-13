@@ -129,6 +129,11 @@ def show_credits():
 
     credits.mainloop()
 
+def show_change_name_menu(event):
+    try: selected_list = listbox.get(listbox.curselection())
+    except Exception as e: return
+    chname_menu.post(event.x_root, event.y_root)
+
 def show_settings_menu(event):
     if (onsending == True): return
     settings_menu.post(event.x_root, event.y_root)
@@ -882,7 +887,7 @@ def update_display_emails(selected_item=list_selected):
         emails_display.config(state=tk.NORMAL)
         after = key
     except:
-        list_emails_label.config(text=f"E-mails de {after}")
+        list_emails_label.config(text=f"")
 
 def read_json_configs():
     global configs, signature_path, user, passw, smtp_host, smtp_port
@@ -913,8 +918,8 @@ def read_json_lists():
         with open(DATADIR, 'r') as file:
             data = json.load(file)
             json_global = data
-            lists = list(data.keys()) # LISTAS
-            lists_mails = list(data.values()) # MAILS DE LAS LISTAS
+            lists = sorted(data.keys(), key=str.lower)  # LISTAS
+            lists_mails = [data[k] for k in lists]
 
         listbox.delete(0, tk.END)
         for lista in lists:
@@ -983,6 +988,32 @@ def del_list():
         emails_display.delete("1.0", tk.END)
         email_selected_label.config(text="")
         list_emails_label.config(text="")
+
+def chname_list():
+    global json_global, data
+    selected_list = listbox.get(listbox.curselection())
+    key = selected_list.split(" (")[0]
+
+    newName = simpledialog.askstring("Cambiar nombre", f'Introduce el nuevo nombre para {selected_list}')
+    if newName:
+        if (newName == key): messagebox.showwarning("Nombre identico", f"El nuevo nombre es igual al actual");return
+        if (newName in data): messagebox.showwarning("Nombre en uso", f"Ya existe una lista llamada {newName}");return
+        try:
+            items = [(newName if k == key else k, v) for k, v in data.items()]
+            data.clear()
+            data.update(items)       # mantiene el orden de 'items' en el MISMO objeto
+            json_global = data 
+            write_json_lists()
+            read_json_lists()
+            update_display_emails()
+        except Exception as e:
+            emails_display.delete("1.0", tk.END)
+            email_selected_label.config(text="")
+            list_emails_label.config(text="")
+            messagebox.showerror("Error", "Ha ocurrido un error al intentar cambiar el nombre, intentelo de nuevo.")
+            print(e)
+        else:
+            messagebox.showinfo("Nombre cambiado", f'La lista "{key}" ahora se llama "{newName}"')
 
 def change_font():
     global font
@@ -1070,6 +1101,7 @@ listbox = tk.Listbox(main_content, border=0)
 listbox.config(font=('Arial', 16),background="#061E44", foreground="#fff", bd=0)
 listbox.place(x=20, y=40, width=300, height=428)
 listbox.bind("<<ListboxSelect>>", on_click_list)
+listbox.bind("<Button-3>", show_change_name_menu)
 
 scrollbar = tk.Scrollbar(main_content, orient="vertical", command=listbox.yview)
 listbox.config(yscrollcommand=scrollbar.set)
@@ -1165,6 +1197,9 @@ settings_menu.add_command(label="Creditos...", command=show_credits)
 
 dellist_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 dellist_menu.add_command(label="Eliminar un email", command=del_email)
+
+chname_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
+chname_menu.add_command(label="Cambiar nombre", command=chname_list)
 
 addlist_menu = tk.Menu(root, tearoff=0, bg="#001536", fg="#ffffff")
 addlist_menu.add_command(label="Añadir un email", command=add_email)
