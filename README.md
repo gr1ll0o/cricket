@@ -20,7 +20,7 @@ user-friendly tool for both list and individual email campaigns.
 - ⏱️ Real-time sending status logging console
 - 🌐 In Spanish currently
 
-## **🔐Security**
+## **🔐 Security**
 
 For Gmail and other providers that require it, it's recommended to **use app passwords instead of your regular account password.**
 
@@ -31,6 +31,9 @@ Account data is **stored locally** in .json, so only use this app on your truste
 This project is intended for legitimate personal, educational,
 or business purposes only. It may not be used for spam or
 unauthorized activities.
+
+## **⚖️ License**
+This project is licensed under the MIT License.
 
 ## **✍️ Author**
 
